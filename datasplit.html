@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 1: Honest Performance & Data Splitting</title>
+    <!-- Tailwind CSS for Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        
+        .data-point {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .data-point:hover {
+            transform: scale(1.2);
+            z-index: 10;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .train-dot { background-color: #3b82f6; } /* Blue */
+        .val-dot { background-color: #f59e0b; }   /* Amber */
+        .test-dot { background-color: #10b981; }  /* Green */
+        .unassigned-dot { background-color: #e2e8f0; } /* Gray */
+
+        /* Custom Scrollbar for visual polish */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Input Range Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <p class="text-sm font-semibold text-blue-600 tracking-wider uppercase">STAT 6034Y - Statistical Learning</p>
+                <h1 class="text-2xl font-bold text-gray-900">Module 1: Honest Performance</h1>
+            </div>
+            <div class="hidden sm:flex space-x-2 text-sm text-gray-500 font-medium">
+                <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">Lecture 2</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto px-4 py-8 space-y-12">
+        
+        <section class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+            <h2 class="text-2xl font-bold mb-4 flex items-center">
+                <i class="fas fa-bullseye text-blue-500 mr-3"></i> Core Question: Will it work on new data?
+            </h2>
+            <p class="text-gray-600 text-lg leading-relaxed mb-4">
+                A model is useful <strong>only</strong> if its performance estimate is credible for future cases. To guarantee this, we must enforce a <em>Future-Like Test</em>. We pretend that part of our dataset is future data, and the model is strictly not allowed to learn from it.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <!-- Training Card -->
+                <div class="bg-blue-50 rounded-xl p-5 border-l-4 border-blue-500 hover:shadow-md transition-shadow">
+                    <h3 class="font-bold text-blue-800 text-lg mb-2"><i class="fas fa-dumbbell mr-2"></i>Training Set</h3>
+                    <p class="text-sm text-blue-900/80">Used to fit the model. The algorithm learns patterns, relationships, and rules exclusively from this data.</p>
+                </div>
+                <!-- Validation Card -->
+                <div class="bg-amber-50 rounded-xl p-5 border-l-4 border-amber-500 hover:shadow-md transition-shadow">
+                    <h3 class="font-bold text-amber-800 text-lg mb-2"><i class="fas fa-sliders-h mr-2"></i>Validation Set</h3>
+                    <p class="text-sm text-amber-900/80">The "Practice Exam". Used to choose model settings, tune parameters, and select the best candidate model.</p>
+                </div>
+                <!-- Test Card -->
+                <div class="bg-emerald-50 rounded-xl p-5 border-l-4 border-emerald-500 hover:shadow-md transition-shadow">
+                    <h3 class="font-bold text-emerald-800 text-lg mb-2"><i class="fas fa-flag-checkered mr-2"></i>Test Set</h3>
+                    <p class="text-sm text-emerald-900/80">The "Final Exam". Used <strong>once</strong> to estimate final performance. If test results change your model, it's no longer a true test!</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+            <h2 class="text-2xl font-bold mb-2 flex items-center">
+                <i class="fas fa-chart-pie text-indigo-500 mr-3"></i> Interactive: Building The Split
+            </h2>
+            <p class="text-gray-600 mb-6">
+                Let's take the <strong>Student Risk Prediction</strong> example. We have 100 students. Adjust the slider to see how data is partitioned. 
+            </p>
+
+            <div class="flex flex-col lg:flex-row gap-8 items-start">
+                
+                <!-- Controls -->
+                <div class="w-full lg:w-1/3 space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Training Size: <span id="trainValText" class="text-blue-600">70%</span>
+                        </label>
+                        <input type="range" id="trainSlider" min="50" max="90" value="70" class="w-full">
+                        <p class="text-xs text-gray-500 mt-2">The remaining data is split evenly between Validation and Test.</p>
+                    </div>
+
+                    <div class="space-y-3 pt-4 border-t border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <span class="flex items-center text-sm font-medium"><span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span> Training</span>
+                            <span id="statTrain" class="font-bold text-blue-600">70</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="flex items-center text-sm font-medium"><span class="w-3 h-3 rounded-full bg-amber-500 mr-2"></span> Validation</span>
+                            <span id="statVal" class="font-bold text-amber-600">15</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="flex items-center text-sm font-medium"><span class="w-3 h-3 rounded-full bg-emerald-500 mr-2"></span> Testing</span>
+                            <span id="statTest" class="font-bold text-emerald-600">15</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Grid -->
+                <div class="w-full lg:w-2/3">
+                    <div id="studentGrid" class="flex flex-wrap gap-1.5 justify-start content-start bg-gray-50 p-4 rounded-xl border border-gray-200 min-h-[200px]">
+                        <!-- Dots injected by JS -->
+                    </div>
+                    <p class="text-center text-xs text-gray-400 mt-3"><i class="fas fa-info-circle mr-1"></i> Each square represents one student record.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg text-white">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700 pb-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-building-columns text-amber-400 mr-3"></i> Activity: The Bank Loan Split
+                    </h2>
+                    <p class="text-slate-300 mt-1">A bank has 10,000 past loan applications (2018 - 2023). Task: Predict default risk for new applications.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Concept text -->
+                <div class="space-y-6">
+                    <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                        <p class="font-medium text-amber-300 mb-2">The Discussion Question:</p>
+                        <p class="text-lg">"Why might a purely random split be risky if the data covers several years?"</p>
+                    </div>
+                    
+                    <!-- Quiz Options -->
+                    <div class="space-y-3" id="quizContainer">
+                        <button onclick="checkAnswer('A')" class="w-full text-left p-4 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors duration-200" id="btnA">
+                            <span class="font-bold mr-2 text-slate-400">A.</span> Random splits naturally reduce the size of the training set too much.
+                        </button>
+                        <button onclick="checkAnswer('B')" class="w-full text-left p-4 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors duration-200" id="btnB">
+                            <span class="font-bold mr-2 text-slate-400">B.</span> Future applications will likely look more like recent cases than older cases.
+                        </button>
+                        <button onclick="checkAnswer('C')" class="w-full text-left p-4 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors duration-200" id="btnC">
+                            <span class="font-bold mr-2 text-slate-400">C.</span> Random sampling causes models to overfit on the training data.
+                        </button>
+                    </div>
+
+                    <!-- Feedback Box -->
+                    <div id="quizFeedback" class="hidden p-4 rounded-lg mt-4 animate-fade-in-up">
+                        <!-- Content injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Simulator -->
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col">
+                    <h3 class="font-semibold text-slate-300 mb-4 text-center">Visualizing Time-Series Data</h3>
+                    <div class="flex justify-center space-x-2 mb-4">
+                        <button onclick="visualizeSplit('random')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-sm font-medium rounded-md transition-colors" id="btnRandom">Random Split</button>
+                        <button onclick="visualizeSplit('time')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-sm font-medium rounded-md transition-colors shadow-[0_0_10px_rgba(79,70,229,0.5)]" id="btnTime">Chronological Split</button>
+                    </div>
+                    
+                    <div class="flex-grow bg-slate-900 rounded-lg p-4 border border-slate-700 relative overflow-hidden">
+                        <!-- Timeline labels -->
+                        <div class="flex justify-between text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">
+                            <span>2018</span>
+                            <span>2020</span>
+                            <span>2023</span>
+                        </div>
+                        <!-- Dots Container -->
+                        <div id="timeGrid" class="flex flex-wrap gap-1 justify-start content-start">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-red-50 rounded-2xl p-6 border border-red-100 flex items-start">
+            <div class="bg-red-100 p-3 rounded-full mr-4 text-red-600">
+                <i class="fas fa-exclamation-triangle text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-red-900 mb-2">The Golden Rule of the Test Set</h3>
+                <p class="text-red-800 mb-2">Important: A record used for training must <strong>not</strong> also appear in the test set.</p>
+                <p class="text-red-800">Furthermore, you must use the test set only <strong>once</strong>. If the test result makes you go back and change your model, it is no longer a true test; it has leaked into your training process!</p>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        /* 
+         * Logic for the Basic Data Splitter (Student Risk Example)
+         */
+        const TOTAL_STUDENTS = 100;
+        const studentGrid = document.getElementById('studentGrid');
+        const trainSlider = document.getElementById('trainSlider');
+        
+        // Stats displays
+        const statTrain = document.getElementById('statTrain');
+        const statVal = document.getElementById('statVal');
+        const statTest = document.getElementById('statTest');
+        const trainValText = document.getElementById('trainValText');
+
+        // Initialize grid
+        function initGrid() {
+            studentGrid.innerHTML = '';
+            for (let i = 0; i < TOTAL_STUDENTS; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'w-4 h-4 md:w-5 md:h-5 rounded-sm data-point unassigned-dot';
+                dot.id = `student-${i}`;
+                studentGrid.appendChild(dot);
+            }
+            updateSplit();
+        }
+
+        // Update colors based on slider
+        function updateSplit() {
+            const trainPct = parseInt(trainSlider.value);
+            const remaining = TOTAL_STUDENTS - trainPct;
+            // Split remainder evenly. If odd, add extra 1 to val.
+            const valPct = Math.ceil(remaining / 2);
+            const testPct = Math.floor(remaining / 2);
+
+            // Update text
+            trainValText.innerText = `${trainPct}%`;
+            statTrain.innerText = trainPct;
+            statVal.innerText = valPct;
+            statTest.innerText = testPct;
+
+            // Update DOM dots
+            const dots = studentGrid.children;
+            for (let i = 0; i < TOTAL_STUDENTS; i++) {
+                dots[i].classList.remove('train-dot', 'val-dot', 'test-dot', 'unassigned-dot');
+                
+                if (i < trainPct) {
+                    dots[i].classList.add('train-dot');
+                } else if (i < trainPct + valPct) {
+                    dots[i].classList.add('val-dot');
+                } else {
+                    dots[i].classList.add('test-dot');
+                }
+            }
+        }
+
+        trainSlider.addEventListener('input', updateSplit);
+        
+        // Initialize on load
+        initGrid();
+
+        /* 
+         * Logic for the Bank Loan Scenario (Time vs Random)
+         */
+        const timeGrid = document.getElementById('timeGrid');
+        const TOTAL_LOANS = 150; // Use 150 dots for visual density in the simulator
+        
+        function initTimeGrid() {
+            timeGrid.innerHTML = '';
+            for (let i = 0; i < TOTAL_LOANS; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'w-2 h-2 md:w-3 md:h-3 rounded-full data-point unassigned-dot';
+                dot.id = `loan-${i}`;
+                timeGrid.appendChild(dot);
+            }
+            // Start with chronological layout to match the button highlight
+            visualizeSplit('time'); 
+        }
+
+        function visualizeSplit(mode) {
+            const dots = timeGrid.children;
+            const trainCount = Math.floor(TOTAL_LOANS * 0.70);
+            const valCount = Math.floor(TOTAL_LOANS * 0.15);
+            const testCount = TOTAL_LOANS - trainCount - valCount;
+
+            // Button styling updates
+            document.getElementById('btnRandom').className = `px-4 py-2 text-sm font-medium rounded-md transition-colors ${mode === 'random' ? 'bg-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.5)] text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'}`;
+            document.getElementById('btnTime').className = `px-4 py-2 text-sm font-medium rounded-md transition-colors ${mode === 'time' ? 'bg-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.5)] text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'}`;
+
+            // Reset array for assignment
+            let assignments = [];
+            for(let i=0; i<trainCount; i++) assignments.push('train-dot');
+            for(let i=0; i<valCount; i++) assignments.push('val-dot');
+            for(let i=0; i<testCount; i++) assignments.push('test-dot');
+
+            if (mode === 'random') {
+                // Shuffle array (Fisher-Yates)
+                for (let i = assignments.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [assignments[i], assignments[j]] = [assignments[j], assignments[i]];
+                }
+            } 
+            // If mode is 'time', assignments array is already chronologically sorted (train -> val -> test)
+
+            // Apply to DOM with a slight staggered delay for cool visual effect
+            for (let i = 0; i < TOTAL_LOANS; i++) {
+                dots[i].className = 'w-2 h-2 md:w-3 md:h-3 rounded-full data-point'; // clear colors
+                setTimeout(() => {
+                    dots[i].classList.add(assignments[i]);
+                }, mode === 'random' ? i * 2 : i * 5); // Faster stagger for random
+            }
+        }
+
+        // Run init for time grid
+        setTimeout(initTimeGrid, 100);
+
+        /*
+         * Quiz Logic
+         */
+        function checkAnswer(selected) {
+            const feedback = document.getElementById('quizFeedback');
+            const btns = ['btnA', 'btnB', 'btnC'];
+            
+            // Reset buttons
+            btns.forEach(id => {
+                document.getElementById(id).classList.remove('bg-red-900/50', 'border-red-500', 'bg-green-900/50', 'border-green-500');
+                document.getElementById(id).classList.add('bg-slate-800', 'border-slate-600');
+            });
+
+            const selectedBtn = document.getElementById('btn' + selected);
+            feedback.classList.remove('hidden');
+
+            if (selected === 'B') {
+                // Correct
+                selectedBtn.classList.remove('bg-slate-800', 'border-slate-600');
+                selectedBtn.classList.add('bg-green-900/50', 'border-green-500');
+                
+                feedback.className = 'p-4 rounded-lg mt-4 bg-green-900/30 border border-green-500 text-green-100 animate-[fadeIn_0.3s_ease-out]';
+                feedback.innerHTML = `
+                    <p class="font-bold flex items-center"><i class="fas fa-check-circle mr-2 text-green-400"></i> Correct!</p>
+                    <p class="text-sm mt-1">When data spans a timeline, older data might have different patterns (e.g., economic shifts from 2018 vs 2023). A random split mixes the future into the past. We should validate and test on the <em>most recent</em> data to simulate how the model will perform in the real future.</p>
+                `;
+                // Trigger the correct visualizer to reinforce
+                visualizeSplit('time');
+            } else {
+                // Incorrect
+                selectedBtn.classList.remove('bg-slate-800', 'border-slate-600');
+                selectedBtn.classList.add('bg-red-900/50', 'border-red-500');
+
+                feedback.className = 'p-4 rounded-lg mt-4 bg-red-900/30 border border-red-500 text-red-100 animate-[fadeIn_0.3s_ease-out]';
+                feedback.innerHTML = `
+                    <p class="font-bold flex items-center"><i class="fas fa-times-circle mr-2 text-red-400"></i> Not quite.</p>
+                    <p class="text-sm mt-1">Look closely at the hint regarding time. Does random sampling account for how data evolves over years?</p>
+                `;
+                // Trigger random visualizer to show the mess
+                visualizeSplit('random');
+            }
+        }
+
+    </script>
+</body>
+</html>
