@@ -100,76 +100,115 @@
         
         <section class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
             <h2 class="text-2xl font-bold mb-4 flex items-center text-slate-800">
-                <i class="fas fa-clipboard-check text-indigo-500 mr-3"></i> 1. The Validation & Test Rule
+                <i class="fas fa-code-branch text-indigo-500 mr-3"></i> 1. Validation vs. Testing: The ML Workflow
             </h2>
             <p class="text-gray-600 text-lg mb-6">
-                <strong>Validation is the practice exam. The Test set is the final exam.</strong> You use validation error to <em>choose</em> your model settings. You use the test set exactly <em>once</em> to estimate final performance.
+                A common trap in machine learning is confusing the Validation set with the Test set. While both are used to evaluate a model, they serve completely different purposes in the model's lifecycle. Think of it as the difference between a <strong>practice exam</strong> and the <strong>final exam</strong>.
             </p>
 
-            <div class="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
-                <div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
-                    <h3 class="font-semibold text-slate-700">Model Selection Simulator</h3>
-                    <span id="testStatusBadge" class="text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-700 uppercase tracking-wide">Selection Phase</span>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-white text-slate-500 text-sm border-b border-slate-200">
-                                <th class="p-4 font-medium">Candidate</th>
-                                <th class="p-4 font-medium">Description</th>
-                                <th class="p-4 font-medium text-center">Validation Error</th>
-                                <th class="p-4 font-medium text-center">Action</th>
-                                <th class="p-4 font-medium text-center bg-slate-100 text-slate-400" id="testHeader">Test Error (Hidden)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modelTableBody">
-                            <!-- Model A -->
-                            <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors" id="row-A">
-                                <td class="p-4 font-bold text-slate-700">Model A</td>
-                                <td class="p-4 text-sm text-slate-600">Simple tree</td>
-                                <td class="p-4 text-center font-mono text-slate-700">0.24</td>
-                                <td class="p-4 text-center">
-                                    <button onclick="selectModel('A', 0.24, 0.26)" class="model-select-btn px-4 py-1.5 rounded bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors">Select</button>
-                                </td>
-                                <td class="p-4 text-center font-mono text-slate-300 blur-sm test-score">0.26</td>
-                            </tr>
-                            <!-- Model B -->
-                            <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors" id="row-B">
-                                <td class="p-4 font-bold text-slate-700">Model B</td>
-                                <td class="p-4 text-sm text-slate-600">Deeper tree</td>
-                                <td class="p-4 text-center font-mono font-bold text-emerald-600">0.18</td>
-                                <td class="p-4 text-center">
-                                    <button onclick="selectModel('B', 0.18, 0.21)" class="model-select-btn px-4 py-1.5 rounded bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors pulse-highlight">Select</button>
-                                </td>
-                                <td class="p-4 text-center font-mono text-slate-300 blur-sm test-score">0.21</td>
-                            </tr>
-                            <!-- Model C -->
-                            <tr class="hover:bg-slate-50 transition-colors" id="row-C">
-                                <td class="p-4 font-bold text-slate-700">Model C</td>
-                                <td class="p-4 text-sm text-slate-600">Very deep tree (Overfits)</td>
-                                <td class="p-4 text-center font-mono text-slate-700">0.31</td>
-                                <td class="p-4 text-center">
-                                    <button onclick="selectModel('C', 0.31, 0.35)" class="model-select-btn px-4 py-1.5 rounded bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors">Select</button>
-                                </td>
-                                <td class="p-4 text-center font-mono text-slate-300 blur-sm test-score">0.35</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Validation Card -->
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-amber-100 p-2 rounded-lg text-amber-600 mr-3">
+                            <i class="fas fa-sliders-h fa-lg"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-amber-900">Validation Set</h3>
+                    </div>
+                    <ul class="space-y-3 text-amber-800 text-sm">
+                        <li class="flex"><i class="fas fa-check text-amber-500 mr-3 mt-1"></i><span><strong>Purpose:</strong> Tune hyperparameters and select the best model complexity.</span></li>
+                        <li class="flex"><i class="fas fa-sync text-amber-500 mr-3 mt-1"></i><span><strong>Frequency:</strong> Used iteratively (many times) during development.</span></li>
+                        <li class="flex"><i class="fas fa-exclamation-triangle text-amber-500 mr-3 mt-1"></i><span><strong>Risk:</strong> "Indirect leakage." The model doesn't train directly on this data, but because you make decisions based on its results, the model can still overfit to it over time.</span></li>
+                    </ul>
                 </div>
 
-                <div class="p-4 bg-white border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div id="selectionFeedback" class="text-sm font-medium text-slate-500">
-                        Select the model with the lowest validation error.
+                <!-- Testing Card -->
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-emerald-100 p-2 rounded-lg text-emerald-600 mr-3">
+                            <i class="fas fa-flag-checkered fa-lg"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-emerald-900">Test Set</h3>
                     </div>
-                    <button id="runTestBtn" disabled onclick="runFinalTest()" class="px-6 py-2 bg-slate-300 text-slate-500 font-bold rounded-lg cursor-not-allowed transition-all">
-                        Run Final Test <i class="fas fa-lock ml-2"></i>
-                    </button>
+                    <ul class="space-y-3 text-emerald-800 text-sm">
+                        <li class="flex"><i class="fas fa-check text-emerald-500 mr-3 mt-1"></i><span><strong>Purpose:</strong> Provide an unbiased, honest estimate of final, real-world performance.</span></li>
+                        <li class="flex"><i class="fas fa-lock text-emerald-500 mr-3 mt-1"></i><span><strong>Frequency:</strong> Used strictly <strong>ONCE</strong> at the very end of the project.</span></li>
+                        <li class="flex"><i class="fas fa-exclamation-triangle text-emerald-500 mr-3 mt-1"></i><span><strong>Risk:</strong> If you use the test score to go back and change your model, it becomes a validation set, and your final estimate is ruined!</span></li>
+                    </ul>
                 </div>
             </div>
-            
-            <div id="postTestMessage" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm slide-down">
-                <strong><i class="fas fa-exclamation-triangle mr-1"></i> Stop!</strong> You have seen the test error. If you go back and pick a different model because you didn't like the test score, the test is no longer honest! It has leaked into your training process.
+
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 md:p-8">
+                <h3 class="font-semibold text-slate-700 mb-8 text-center text-lg">Interactive ML Lifecycle</h3>
+                
+                <div class="flex flex-col md:flex-row items-center justify-center max-w-4xl mx-auto relative gap-2 md:gap-0">
+                    
+                    <!-- Training Node -->
+                    <div class="flex flex-col items-center z-10 w-24">
+                        <div class="w-16 h-16 bg-blue-100 border-2 border-blue-400 rounded-full flex items-center justify-center text-blue-600 mb-2 shadow-sm">
+                            <i class="fas fa-dumbbell fa-xl"></i>
+                        </div>
+                        <span class="text-sm font-bold text-slate-600 text-center">Train<br><span class="text-[10px] font-normal">Learn Patterns</span></span>
+                    </div>
+
+                    <!-- Iteration Arrow (Train <-> Val) -->
+                    <div class="flex flex-col md:flex-row items-center justify-center relative md:w-32 lg:w-48">
+                        <div class="w-1 h-8 md:w-full md:h-1 bg-slate-300 relative rounded-full my-2 md:my-0">
+                            <div id="valFlowAnim" class="absolute top-0 left-0 h-full w-full bg-amber-400 rounded-full opacity-0 transition-opacity duration-300 shadow-[0_0_8px_rgba(251,191,36,0.8)]"></div>
+                        </div>
+                        <div class="absolute md:-top-8 text-center bg-slate-50 px-2 rounded hidden md:block">
+                            <span class="text-xs font-semibold text-amber-600">Iterative Tuning</span><br>
+                            <span id="iterationCount" class="text-[10px] text-slate-500 font-mono font-bold">0 loops</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile only label -->
+                    <div class="md:hidden text-center mb-2">
+                         <span class="text-xs font-semibold text-amber-600">Iterative Tuning: </span>
+                         <span id="iterationCountMobile" class="text-xs text-slate-500 font-mono font-bold">0 loops</span>
+                    </div>
+
+                    <!-- Validation Node -->
+                    <div class="flex flex-col items-center z-10 w-24">
+                        <div id="valNode" class="w-16 h-16 bg-amber-50 border-2 border-amber-300 rounded-full flex items-center justify-center text-amber-500 mb-2 shadow-sm transition-all duration-300">
+                            <i class="fas fa-sliders-h fa-xl"></i>
+                        </div>
+                        <span class="text-sm font-bold text-slate-600 text-center">Validate<br><span class="text-[10px] font-normal">Adjust settings</span></span>
+                    </div>
+
+                    <!-- Finalizing Arrow (Val -> Test) -->
+                    <div class="flex flex-col md:flex-row items-center justify-center relative md:w-32 lg:w-48">
+                        <div class="w-1 h-8 md:w-full md:h-1 bg-slate-300 relative rounded-full my-2 md:my-0">
+                            <!-- Using height for vertical mobile, width for horizontal desktop -->
+                            <div id="testFlowAnim" class="absolute top-0 left-0 w-full h-0 md:h-full md:w-0 bg-emerald-500 rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                        </div>
+                        <div class="absolute md:-top-6 text-center bg-slate-50 px-2 rounded hidden md:block">
+                            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Finalize</span>
+                        </div>
+                    </div>
+
+                    <!-- Testing Node -->
+                    <div class="flex flex-col items-center z-10 w-24">
+                        <div id="testNode" class="w-16 h-16 bg-slate-100 border-2 border-slate-300 rounded-full flex items-center justify-center text-slate-400 mb-2 shadow-sm transition-all duration-500">
+                            <i class="fas fa-lock fa-xl"></i>
+                        </div>
+                        <span class="text-sm font-bold text-slate-600 text-center">Test<br><span class="text-[10px] font-normal">Final Exam</span></span>
+                    </div>
+                </div>
+
+                <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+                    <button id="btnIterate" onclick="simulateValidation()" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition-colors shadow-sm flex items-center justify-center">
+                        <i class="fas fa-sync-alt mr-2"></i> Run Validation Loop
+                    </button>
+                    <button id="btnFinalTest" onclick="simulateTesting()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg transition-colors shadow-sm flex items-center justify-center relative overflow-hidden group">
+                        <span class="relative z-10 flex items-center"><i class="fas fa-flag-checkered mr-2"></i> Run Final Test</span>
+                        <div class="absolute inset-0 bg-emerald-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    </button>
+                </div>
+                
+                <div id="lifecycleFeedback" class="mt-6 p-3 rounded bg-slate-100 text-center text-sm font-medium text-slate-600 border border-slate-200 transition-all">
+                    Click "Run Validation Loop" to start tuning your model.
+                </div>
             </div>
         </section>
 
@@ -376,80 +415,98 @@
     </main>
 
     <script>
-        // --- 1. Validation Logic ---
-        let selectedModel = null;
-        let finalTestRun = false;
-        
-        function selectModel(modelId, valError, testError) {
-            if (finalTestRun) return; // Prevent changing after test
-            
-            selectedModel = { id: modelId, val: valError, test: testError };
-            
-            // Reset UI
-            document.querySelectorAll('.model-select-btn').forEach(btn => {
-                btn.innerHTML = 'Select';
-                btn.classList.remove('bg-indigo-600', 'text-white', 'pulse-highlight');
-                btn.classList.add('bg-white', 'text-indigo-600');
-            });
-            document.querySelectorAll('tr[id^="row-"]').forEach(row => row.classList.remove('bg-indigo-50'));
-            
-            // Highlight Selected
-            const activeRow = document.getElementById(`row-${modelId}`);
-            activeRow.classList.add('bg-indigo-50');
-            const activeBtn = activeRow.querySelector('.model-select-btn');
-            activeBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Selected';
-            activeBtn.classList.remove('bg-white', 'text-indigo-600');
-            activeBtn.classList.add('bg-indigo-600', 'text-white');
+        // --- 1. Validation vs Testing Lifecycle Logic ---
+        let iterations = 0;
+        let isTested = false;
+        let isAnimating = false;
 
-            // Feedback
-            const feedback = document.getElementById('selectionFeedback');
-            if (modelId === 'B') {
-                feedback.innerHTML = `<span class="text-emerald-600 font-bold"><i class="fas fa-check-circle mr-1"></i> Excellent choice!</span> Model B has the lowest validation error (0.18).`;
-            } else if (modelId === 'C') {
-                feedback.innerHTML = `<span class="text-orange-600 font-bold"><i class="fas fa-exclamation-triangle mr-1"></i> Careful.</span> Model C is a very deep tree. It might be overfitting (validation error 0.31 is high).`;
-            } else {
-                feedback.innerHTML = `<span class="text-blue-600 font-bold">Model A selected.</span> Note that Model B has a lower validation error.`;
-            }
+        function simulateValidation() {
+            if (isTested || isAnimating) return;
+            isAnimating = true;
+            iterations++;
+            
+            // Update counters
+            const counterText = `${iterations} loop${iterations > 1 ? 's' : ''}`;
+            document.getElementById('iterationCount').innerText = counterText;
+            document.getElementById('iterationCountMobile').innerText = counterText;
+            
+            // UI Animations
+            const flow = document.getElementById('valFlowAnim');
+            const node = document.getElementById('valNode');
+            const feedback = document.getElementById('lifecycleFeedback');
+            
+            flow.classList.remove('opacity-0');
+            flow.classList.add('opacity-100');
+            node.classList.remove('bg-amber-50', 'border-amber-300', 'text-amber-500');
+            node.classList.add('bg-amber-100', 'border-amber-500', 'text-amber-600', 'scale-110', 'shadow-md');
+            
+            feedback.className = 'mt-6 p-3 rounded bg-amber-50 text-center text-sm font-medium text-amber-700 border border-amber-200 transition-all';
+            feedback.innerHTML = `<i class="fas fa-cog fa-spin mr-1"></i> Checking validation error, adjusting hyperparameters, and re-training...`;
 
-            // Enable Test Button
-            const testBtn = document.getElementById('runTestBtn');
-            testBtn.disabled = false;
-            testBtn.className = 'px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all shadow-md';
+            setTimeout(() => {
+                flow.classList.remove('opacity-100');
+                flow.classList.add('opacity-0');
+                node.classList.remove('bg-amber-100', 'border-amber-500', 'text-amber-600', 'scale-110', 'shadow-md');
+                node.classList.add('bg-amber-50', 'border-amber-300', 'text-amber-500');
+                
+                feedback.className = 'mt-6 p-3 rounded bg-slate-100 text-center text-sm font-medium text-slate-600 border border-slate-200 transition-all';
+                feedback.innerHTML = `Model updated based on validation feedback. Ready for another loop or Final Test.`;
+                isAnimating = false;
+            }, 800);
         }
 
-        function runFinalTest() {
-            if (!selectedModel || finalTestRun) return;
-            finalTestRun = true;
-
-            // Update Header
-            const header = document.getElementById('testHeader');
-            header.innerHTML = 'Test Error (Revealed)';
-            header.classList.remove('bg-slate-100', 'text-slate-400');
-            header.classList.add('bg-indigo-100', 'text-indigo-800');
-
-            // Unblur and highlight test scores
-            document.querySelectorAll('.test-score').forEach(cell => {
-                cell.classList.remove('blur-sm', 'text-slate-300');
-                cell.classList.add('text-slate-700', 'font-bold');
-            });
-
-            // Disable selection buttons to enforce "used once" rule
-            document.querySelectorAll('.model-select-btn').forEach(btn => {
-                btn.disabled = true;
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-            });
-
-            // Update badge and show message
-            const badge = document.getElementById('testStatusBadge');
-            badge.innerHTML = 'Test Phase Completed';
-            badge.className = 'text-xs font-bold px-2 py-1 rounded bg-red-100 text-red-700 uppercase tracking-wide';
+        function simulateTesting() {
+            if (isTested || isAnimating) return;
             
-            const btn = document.getElementById('runTestBtn');
-            btn.innerHTML = `Test Run Complete <i class="fas fa-check-double ml-2"></i>`;
-            btn.className = 'px-6 py-2 bg-slate-200 text-slate-500 font-bold rounded-lg cursor-not-allowed';
-            btn.disabled = true;
+            if (iterations === 0) {
+                const feedback = document.getElementById('lifecycleFeedback');
+                feedback.className = 'mt-6 p-3 rounded bg-red-50 text-center text-sm font-medium text-red-600 border border-red-200 transition-all pulse-highlight';
+                feedback.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i> You should validate and tune your model at least once before testing!`;
+                setTimeout(() => {
+                    if(!isTested) feedback.classList.remove('pulse-highlight');
+                }, 1000);
+                return;
+            }
+            
+            isTested = true;
+            isAnimating = true;
+            
+            // Disable validation button
+            const btnIterate = document.getElementById('btnIterate');
+            btnIterate.disabled = true;
+            btnIterate.classList.remove('bg-amber-500', 'hover:bg-amber-600', 'text-white');
+            btnIterate.classList.add('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
 
-            document.getElementById('postTestMessage').classList.remove('hidden');
+            // Disable test button visually
+            const btnFinalTest = document.getElementById('btnFinalTest');
+            btnFinalTest.disabled = true;
+            btnFinalTest.classList.remove('bg-slate-800', 'hover:bg-slate-900', 'text-white', 'group');
+            btnFinalTest.classList.add('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
+
+            // Animations
+            const testFlow = document.getElementById('testFlowAnim');
+            const testNode = document.getElementById('testNode');
+            const feedback = document.getElementById('lifecycleFeedback');
+            
+            // Handle responsive animation width vs height
+            if (window.innerWidth >= 768) {
+                testFlow.style.width = '100%';
+            } else {
+                testFlow.style.height = '100%';
+                testFlow.style.width = '100%'; // Ensure it fills the 1px width line
+            }
+            
+            feedback.className = 'mt-6 p-3 rounded bg-slate-100 text-center text-sm font-medium text-slate-600 border border-slate-200 transition-all';
+            feedback.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i> Running final predictions on unseen data...`;
+            
+            setTimeout(() => {
+                testNode.classList.remove('bg-slate-100', 'border-slate-300', 'text-slate-400');
+                testNode.classList.add('bg-emerald-100', 'border-emerald-500', 'text-emerald-600', 'scale-110', 'shadow-md');
+                
+                feedback.className = 'mt-6 p-3 rounded bg-emerald-50 text-center text-sm font-medium text-emerald-800 border border-emerald-300 transition-all slide-down';
+                feedback.innerHTML = `<strong><i class="fas fa-lock mr-1 text-emerald-600"></i> Final Test Complete!</strong> Your model performance is locked in. You may no longer change your model based on these results.`;
+                isAnimating = false;
+            }, 800);
         }
 
 
