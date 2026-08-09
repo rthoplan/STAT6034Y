@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 2: Evaluating Model Performance</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdf4; /* Light green tint background */
+            color: #0f172a;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #e2e8f0; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* Smooth transitions */
+        .interactive-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .interactive-card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Confusion Matrix Input Styling */
+        .cm-input {
+            width: 100%;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: transparent;
+            border: 2px solid transparent;
+            border-radius: 0.5rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .cm-input:focus {
+            border-color: #ffffff;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* Metric progress bars */
+        .metric-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .metric-bar {
+            height: 100%;
+            transition: width 0.5s ease-out, background-color 0.3s;
+        }
+
+        /* Animation classes */
+        @keyframes highlightPulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .pulse-highlight {
+            animation: highlightPulse 2s infinite;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-down {
+            animation: slideDown 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <p class="text-sm font-semibold text-emerald-600 tracking-wider uppercase">STAT 6034Y - Statistical Learning</p>
+                <h1 class="text-2xl font-bold text-gray-900">Module 2: Evaluating Performance</h1>
+            </div>
+            <div class="flex space-x-2 text-sm text-gray-500 font-medium">
+                <span class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-100"><i class="fas fa-layer-group mr-1"></i> Slides 6-13</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto px-4 py-8 space-y-12 w-full">
+        
+        <section class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+            <h2 class="text-2xl font-bold mb-4 flex items-center text-slate-800">
+                <i class="fas fa-clipboard-check text-indigo-500 mr-3"></i> 1. The Validation & Test Rule
+            </h2>
+            <p class="text-gray-600 text-lg mb-6">
+                <strong>Validation is the practice exam. The Test set is the final exam.</strong> You use validation error to <em>choose</em> your model settings. You use the test set exactly <em>once</em> to estimate final performance.
+            </p>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                <div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
+                    <h3 class="font-semibold text-slate-700">Model Selection Simulator</h3>
+                    <span id="testStatusBadge" class="text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-700 uppercase tracking-wide">Selection Phase</span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-white text-slate-500 text-sm border-b border-slate-200">
+                                <th class="p-4 font-medium">Candidate</th>
+                                <th class="p-4 font-medium">Description</th>
+                                <th class="p-4 font-medium text-center">Validation Error</th>
+                                <th class="p-4 font-medium text-center">Action</th>
+                                <th class="p-4 font-medium text-center bg-slate-100 text-slate-400" id="testHeader">Test Error (Hidden)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modelTableBody">
+                            <!-- Model A -->
+                            <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors" id="row-A">
+                                <td class="p-4 font-bold text-slate-700">Model A</td>
+                                <td class="p-4 text-sm text-slate-600">Simple tree</td>
+                                <td class="p-4 text-center font-mono text-slate-700">0.24</td>
+                                <td class="p-4 text-center">
+                                    <button onclick="selectModel('A', 0.24, 0.26)" class="model-select-btn px-4 py-1.5 rounded bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors">Select</button>
+                                </td>
+                                <td class="p-4 text-center font-mono text-slate-300 blur-sm test-score">0.26</td>
+                            </tr>
+                            <!-- Model B -->
+                            <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors" id="row-B">
+                                <td class="p-4 font-bold text-slate-700">Model B</td>
+                                <td class="p-4 text-sm text-slate-600">Deeper tree</td>
+                                <td class="p-4 text-center font-mono font-bold text-emerald-600">0.18</td>
+                                <td class="p-4 text-center">
+                                    <button onclick="selectModel('B', 0.18, 0.21)" class="model-select-btn px-4 py-1.5 rounded bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors pulse-highlight">Select</button>
+                                </td>
+                                <td class="p-4 text-center font-mono text-slate-300 blur-sm test-score">0.21</td>
+                            </tr>
+                            <!-- Model C -->
+                            <tr class="hover:bg-slate-50 transition-colors" id="row-C">
+                                <td class="p-4 font-bold text-slate-700">Model C</td>
+                                <td class="p-4 text-sm text-slate-600">Very deep tree (Overfits)</td>
+                                <td class="p-4 text-center font-mono text-slate-700">0.31</td>
+                                <td class="p-4 text-center">
+                                    <button onclick="selectModel('C', 0.31, 0.35)" class="model-select-btn px-4 py-1.5 rounded bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 text-sm font-medium transition-colors">Select</button>
+                                </td>
+                                <td class="p-4 text-center font-mono text-slate-300 blur-sm test-score">0.35</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-4 bg-white border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div id="selectionFeedback" class="text-sm font-medium text-slate-500">
+                        Select the model with the lowest validation error.
+                    </div>
+                    <button id="runTestBtn" disabled onclick="runFinalTest()" class="px-6 py-2 bg-slate-300 text-slate-500 font-bold rounded-lg cursor-not-allowed transition-all">
+                        Run Final Test <i class="fas fa-lock ml-2"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="postTestMessage" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm slide-down">
+                <strong><i class="fas fa-exclamation-triangle mr-1"></i> Stop!</strong> You have seen the test error. If you go back and pick a different model because you didn't like the test score, the test is no longer honest! It has leaked into your training process.
+            </div>
+        </section>
+
+        <section class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+            <h2 class="text-2xl font-bold mb-4 flex items-center text-slate-800">
+                <i class="fas fa-ruler-combined text-blue-500 mr-3"></i> 2. Regression: Penalizing Distance
+            </h2>
+            <p class="text-gray-600 text-lg mb-6">
+                In regression (predicting a continuous number, like monthly sales), loss depends on <strong>prediction distance</strong>. Let's compare Absolute Error (used in MAE) vs. Squared Error (used in MSE). Notice how squaring heavily penalizes the larger mistakes.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 overflow-x-auto border border-gray-200 rounded-xl">
+                    <table class="w-full text-center border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 text-sm">
+                                <th class="p-3 border-b border-r border-gray-200">Case</th>
+                                <th class="p-3 border-b border-r border-gray-200">Actual (y)</th>
+                                <th class="p-3 border-b border-r border-gray-200">Prediction (ŷ)</th>
+                                <th class="p-3 border-b border-r border-gray-200 bg-blue-50 text-blue-800 font-bold">Absolute Error<br><span class="text-xs font-normal">|y - ŷ|</span></th>
+                                <th class="p-3 border-b bg-red-50 text-red-800 font-bold">Squared Error<br><span class="text-xs font-normal">(y - ŷ)²</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="regressionTableBody" class="font-mono text-sm">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- MAE Card -->
+                    <div class="bg-blue-50 rounded-xl p-5 border border-blue-200">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-blue-900">MAE</h3>
+                            <span class="text-xs font-semibold bg-blue-200 text-blue-800 px-2 py-1 rounded">Mean Absolute</span>
+                        </div>
+                        <p class="text-3xl font-black text-blue-600 mb-1" id="displayMAE">0.0</p>
+                        <p class="text-xs text-blue-800/70">Average of the absolute errors. Easy to interpret (same units as target).</p>
+                    </div>
+                    
+                    <!-- MSE Card -->
+                    <div class="bg-red-50 rounded-xl p-5 border border-red-200">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-red-900">MSE</h3>
+                            <span class="text-xs font-semibold bg-red-200 text-red-800 px-2 py-1 rounded">Mean Squared</span>
+                        </div>
+                        <p class="text-3xl font-black text-red-600 mb-1" id="displayMSE">0.0</p>
+                        <p class="text-xs text-red-800/70">Average of squared errors. Highly sensitive to outliers (like the error of 10).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-slate-900 rounded-2xl p-6 md:p-8 shadow-xl text-white">
+            <h2 class="text-2xl font-bold mb-4 flex items-center text-emerald-400">
+                <i class="fas fa-th-large mr-3"></i> 3. Classification & The Confusion Matrix
+            </h2>
+            <p class="text-slate-300 text-lg mb-8 max-w-3xl">
+                For classification (e.g., predicting customer churn), loss depends on right or wrong labels. 
+                Edit the numbers in the matrix below to see how different metrics answer different questions.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                
+                <!-- Matrix -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <h3 class="text-center font-bold text-slate-300 mb-4 tracking-wider uppercase text-sm">Predicted Class</h3>
+                    <div class="grid grid-cols-[auto_1fr_1fr] gap-2 items-center">
+                        
+                        <!-- Row 1 Label -->
+                        <div class="row-start-2 text-right pr-4 font-bold text-slate-300 uppercase text-xs tracking-widest whitespace-nowrap" style="writing-mode: vertical-rl; transform: rotate(180deg);">Actual Class</div>
+
+                        <!-- Headers -->
+                        <div class="col-start-2 text-center text-emerald-400 font-semibold mb-2">Predict Churn</div>
+                        <div class="col-start-3 text-center text-slate-400 font-semibold mb-2">Predict Stay</div>
+
+                        <!-- Actual Churn Row -->
+                        <div class="col-start-1 row-start-3 text-right pr-4 font-semibold text-emerald-400">Actual Churn</div>
+                        
+                        <!-- TP -->
+                        <div class="bg-emerald-900/40 border border-emerald-500/50 rounded-lg p-4 relative group interactive-card">
+                            <span class="absolute top-2 left-2 text-xs font-bold text-emerald-400">TP</span>
+                            <input type="number" id="inputTP" value="35" min="0" class="cm-input text-emerald-300 mt-2">
+                            <div class="absolute inset-x-0 bottom-0 translate-y-full opacity-0 group-hover:opacity-100 group-hover:translate-y-2 transition-all bg-slate-800 text-xs p-2 rounded border border-slate-600 z-10 text-center pointer-events-none">
+                                Churners correctly identified.
+                            </div>
+                        </div>
+
+                        <!-- FN -->
+                        <div class="bg-red-900/30 border border-red-500/30 rounded-lg p-4 relative group interactive-card">
+                            <span class="absolute top-2 left-2 text-xs font-bold text-red-400">FN</span>
+                            <input type="number" id="inputFN" value="15" min="0" class="cm-input text-red-300 mt-2">
+                            <div class="absolute inset-x-0 bottom-0 translate-y-full opacity-0 group-hover:opacity-100 group-hover:translate-y-2 transition-all bg-slate-800 text-xs p-2 rounded border border-slate-600 z-10 text-center pointer-events-none">
+                                Missed churners! (Actual churn, predicted stay).
+                            </div>
+                        </div>
+
+                        <!-- Actual Stay Row -->
+                        <div class="col-start-1 row-start-4 text-right pr-4 font-semibold text-slate-400 mt-2">Actual Stay</div>
+
+                        <!-- FP -->
+                        <div class="bg-orange-900/30 border border-orange-500/30 rounded-lg p-4 mt-2 relative group interactive-card">
+                            <span class="absolute top-2 left-2 text-xs font-bold text-orange-400">FP</span>
+                            <input type="number" id="inputFP" value="20" min="0" class="cm-input text-orange-300 mt-2">
+                            <div class="absolute inset-x-0 bottom-0 translate-y-full opacity-0 group-hover:opacity-100 group-hover:translate-y-2 transition-all bg-slate-800 text-xs p-2 rounded border border-slate-600 z-10 text-center pointer-events-none">
+                                False alarm. (Actual stay, predicted churn).
+                            </div>
+                        </div>
+
+                        <!-- TN -->
+                        <div class="bg-slate-700/50 border border-slate-600 rounded-lg p-4 mt-2 relative group interactive-card">
+                            <span class="absolute top-2 left-2 text-xs font-bold text-slate-400">TN</span>
+                            <input type="number" id="inputTN" value="130" min="0" class="cm-input text-slate-300 mt-2">
+                            <div class="absolute inset-x-0 bottom-0 translate-y-full opacity-0 group-hover:opacity-100 group-hover:translate-y-2 transition-all bg-slate-800 text-xs p-2 rounded border border-slate-600 z-10 text-center pointer-events-none">
+                                Loyal customers correctly identified.
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Metrics Dashboard -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    
+                    <!-- Accuracy -->
+                    <div class="bg-slate-800 rounded-xl p-5 border border-slate-700">
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="font-bold text-slate-200">Accuracy</h4>
+                            <span class="text-xl font-bold text-white" id="valAcc">0%</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-mono mb-2">(TP + TN) / Total</p>
+                        <div class="metric-bar-container bg-slate-700"><div id="barAcc" class="metric-bar bg-blue-500" style="width: 0%"></div></div>
+                        <p class="text-xs text-slate-400 mt-3">Overall correct predictions.</p>
+                    </div>
+
+                    <!-- Sensitivity -->
+                    <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 relative overflow-hidden">
+                        <!-- Highlight if high priority -->
+                        <div class="absolute top-0 right-0 p-2 text-emerald-400 opacity-20"><i class="fas fa-bullseye fa-3x"></i></div>
+                        <div class="flex justify-between items-center mb-1 relative z-10">
+                            <h4 class="font-bold text-emerald-300">Sensitivity</h4>
+                            <span class="text-xl font-bold text-white" id="valSens">0%</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-mono mb-2 z-10 relative">TP / (TP + FN)</p>
+                        <div class="metric-bar-container bg-slate-700 relative z-10"><div id="barSens" class="metric-bar bg-emerald-500" style="width: 0%"></div></div>
+                        <p class="text-xs text-slate-300 mt-3 relative z-10 border-t border-slate-700 pt-2"><strong>Crucial if missing a churner is expensive!</strong> Out of all actual churners, how many did we find?</p>
+                    </div>
+
+                    <!-- Specificity -->
+                    <div class="bg-slate-800 rounded-xl p-5 border border-slate-700">
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="font-bold text-slate-300">Specificity</h4>
+                            <span class="text-xl font-bold text-white" id="valSpec">0%</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-mono mb-2">TN / (TN + FP)</p>
+                        <div class="metric-bar-container bg-slate-700"><div id="barSpec" class="metric-bar bg-purple-500" style="width: 0%"></div></div>
+                        <p class="text-xs text-slate-400 mt-3">Out of all actual stayers, how many did we predict correctly?</p>
+                    </div>
+
+                    <!-- Precision -->
+                    <div class="bg-slate-800 rounded-xl p-5 border border-slate-700">
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="font-bold text-slate-300">Precision</h4>
+                            <span class="text-xl font-bold text-white" id="valPrec">0%</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-mono mb-2">TP / (TP + FP)</p>
+                        <div class="metric-bar-container bg-slate-700"><div id="barPrec" class="metric-bar bg-amber-500" style="width: 0%"></div></div>
+                        <p class="text-xs text-slate-400 mt-3">Out of all predicted churners, how many actually churned?</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-red-50 rounded-2xl p-6 md:p-8 border border-red-100 flex flex-col md:flex-row gap-6 items-center">
+            <div class="bg-white p-5 rounded-full shadow-sm text-red-500 flex-shrink-0">
+                <i class="fas fa-radiation fa-3x"></i>
+            </div>
+            <div class="flex-grow">
+                <h3 class="text-2xl font-bold text-red-900 mb-3">The Accuracy Trap</h3>
+                <p class="text-red-800 mb-4 text-lg">
+                    If a dataset is highly imbalanced, Accuracy is a terrible metric. 
+                </p>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-red-100">
+                    <p class="text-gray-700 mb-3"><strong>Scenario:</strong> 90% of customers naturally stay. You build a "dumb" baseline model that simply predicts <em>"Everyone will stay"</em>.</p>
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div class="bg-gray-100 px-4 py-2 rounded-lg border border-gray-200">
+                            <span class="text-xs text-gray-500 uppercase font-bold block">Baseline Accuracy</span>
+                            <span class="text-xl font-black text-gray-800">90%</span>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                        <div class="bg-red-100 px-4 py-2 rounded-lg border border-red-200">
+                            <span class="text-xs text-red-600 uppercase font-bold block">Churners Found (Sensitivity)</span>
+                            <span class="text-xl font-black text-red-700">0%</span>
+                        </div>
+                        <p class="text-sm text-gray-600 ml-auto max-w-xs leading-tight">
+                            The model looks great on paper (90%), but is completely useless for the business problem. <strong>This is why a simple baseline is required for comparison.</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- 1. Validation Logic ---
+        let selectedModel = null;
+        let finalTestRun = false;
+        
+        function selectModel(modelId, valError, testError) {
+            if (finalTestRun) return; // Prevent changing after test
+            
+            selectedModel = { id: modelId, val: valError, test: testError };
+            
+            // Reset UI
+            document.querySelectorAll('.model-select-btn').forEach(btn => {
+                btn.innerHTML = 'Select';
+                btn.classList.remove('bg-indigo-600', 'text-white', 'pulse-highlight');
+                btn.classList.add('bg-white', 'text-indigo-600');
+            });
+            document.querySelectorAll('tr[id^="row-"]').forEach(row => row.classList.remove('bg-indigo-50'));
+            
+            // Highlight Selected
+            const activeRow = document.getElementById(`row-${modelId}`);
+            activeRow.classList.add('bg-indigo-50');
+            const activeBtn = activeRow.querySelector('.model-select-btn');
+            activeBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Selected';
+            activeBtn.classList.remove('bg-white', 'text-indigo-600');
+            activeBtn.classList.add('bg-indigo-600', 'text-white');
+
+            // Feedback
+            const feedback = document.getElementById('selectionFeedback');
+            if (modelId === 'B') {
+                feedback.innerHTML = `<span class="text-emerald-600 font-bold"><i class="fas fa-check-circle mr-1"></i> Excellent choice!</span> Model B has the lowest validation error (0.18).`;
+            } else if (modelId === 'C') {
+                feedback.innerHTML = `<span class="text-orange-600 font-bold"><i class="fas fa-exclamation-triangle mr-1"></i> Careful.</span> Model C is a very deep tree. It might be overfitting (validation error 0.31 is high).`;
+            } else {
+                feedback.innerHTML = `<span class="text-blue-600 font-bold">Model A selected.</span> Note that Model B has a lower validation error.`;
+            }
+
+            // Enable Test Button
+            const testBtn = document.getElementById('runTestBtn');
+            testBtn.disabled = false;
+            testBtn.className = 'px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all shadow-md';
+        }
+
+        function runFinalTest() {
+            if (!selectedModel || finalTestRun) return;
+            finalTestRun = true;
+
+            // Update Header
+            const header = document.getElementById('testHeader');
+            header.innerHTML = 'Test Error (Revealed)';
+            header.classList.remove('bg-slate-100', 'text-slate-400');
+            header.classList.add('bg-indigo-100', 'text-indigo-800');
+
+            // Unblur and highlight test scores
+            document.querySelectorAll('.test-score').forEach(cell => {
+                cell.classList.remove('blur-sm', 'text-slate-300');
+                cell.classList.add('text-slate-700', 'font-bold');
+            });
+
+            // Disable selection buttons to enforce "used once" rule
+            document.querySelectorAll('.model-select-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            // Update badge and show message
+            const badge = document.getElementById('testStatusBadge');
+            badge.innerHTML = 'Test Phase Completed';
+            badge.className = 'text-xs font-bold px-2 py-1 rounded bg-red-100 text-red-700 uppercase tracking-wide';
+            
+            const btn = document.getElementById('runTestBtn');
+            btn.innerHTML = `Test Run Complete <i class="fas fa-check-double ml-2"></i>`;
+            btn.className = 'px-6 py-2 bg-slate-200 text-slate-500 font-bold rounded-lg cursor-not-allowed';
+            btn.disabled = true;
+
+            document.getElementById('postTestMessage').classList.remove('hidden');
+        }
+
+
+        // --- 2. Regression Table Logic ---
+        const regressionData = [
+            { actual: 100, pred: 90 },
+            { actual: 120, pred: 125 },
+            { actual: 80, pred: 70 },
+            { actual: 110, pred: 105 }
+        ];
+
+        function initRegressionTable() {
+            const tbody = document.getElementById('regressionTableBody');
+            let sumAbs = 0;
+            let sumSq = 0;
+
+            regressionData.forEach((row, index) => {
+                const absErr = Math.abs(row.actual - row.pred);
+                const sqErr = Math.pow(absErr, 2);
+                
+                sumAbs += absErr;
+                sumSq += sqErr;
+
+                // Highlight the largest error (Case 1 & 3)
+                const isLarge = absErr >= 10;
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-100 hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="p-3 border-r border-gray-100">${index + 1}</td>
+                    <td class="p-3 border-r border-gray-100">${row.actual}</td>
+                    <td class="p-3 border-r border-gray-100">${row.pred}</td>
+                    <td class="p-3 border-r border-gray-100 text-blue-700 ${isLarge ? 'font-bold bg-blue-50/50' : ''}">${absErr}</td>
+                    <td class="p-3 text-red-700 ${isLarge ? 'font-black bg-red-50/50' : ''}">${sqErr}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const n = regressionData.length;
+            document.getElementById('displayMAE').innerText = (sumAbs / n).toFixed(2);
+            document.getElementById('displayMSE').innerText = (sumSq / n).toFixed(2);
+        }
+        initRegressionTable();
+
+
+        // --- 3. Confusion Matrix Metrics Logic ---
+        const iTP = document.getElementById('inputTP');
+        const iFP = document.getElementById('inputFP');
+        const iFN = document.getElementById('inputFN');
+        const iTN = document.getElementById('inputTN');
+
+        function updateMetrics() {
+            // Parse values, default to 0 if empty
+            const tp = parseInt(iTP.value) || 0;
+            const fp = parseInt(iFP.value) || 0;
+            const fn = parseInt(iFN.value) || 0;
+            const tn = parseInt(iTN.value) || 0;
+
+            const total = tp + fp + fn + tn;
+            const actualPos = tp + fn;
+            const actualNeg = tn + fp;
+            const predPos = tp + fp;
+
+            // Calculate metrics (handle divide by zero)
+            const acc = total > 0 ? (tp + tn) / total : 0;
+            const sens = actualPos > 0 ? tp / actualPos : 0;
+            const spec = actualNeg > 0 ? tn / actualNeg : 0;
+            const prec = predPos > 0 ? tp / predPos : 0;
+
+            // Update UI Numbers
+            document.getElementById('valAcc').innerText = (acc * 100).toFixed(1) + '%';
+            document.getElementById('valSens').innerText = (sens * 100).toFixed(1) + '%';
+            document.getElementById('valSpec').innerText = (spec * 100).toFixed(1) + '%';
+            document.getElementById('valPrec').innerText = (prec * 100).toFixed(1) + '%';
+
+            // Update Bars
+            document.getElementById('barAcc').style.width = (acc * 100) + '%';
+            document.getElementById('barSens').style.width = (sens * 100) + '%';
+            document.getElementById('barSpec').style.width = (spec * 100) + '%';
+            document.getElementById('barPrec').style.width = (prec * 100) + '%';
+
+            // Dynamic color logic for sensitivity (critical metric)
+            const barSens = document.getElementById('barSens');
+            if(sens < 0.5) {
+                barSens.className = 'metric-bar bg-red-500';
+            } else if (sens < 0.7) {
+                barSens.className = 'metric-bar bg-amber-500';
+            } else {
+                barSens.className = 'metric-bar bg-emerald-500';
+            }
+        }
+
+        // Attach listeners
+        [iTP, iFP, iFN, iTN].forEach(input => {
+            input.addEventListener('input', updateMetrics);
+        });
+
+        // Initialize on load
+        updateMetrics();
+
+    </script>
+</body>
+</html>
