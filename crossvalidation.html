@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Cross-Validation: An Interactive Visual Guide</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        display: ['"Space Grotesk"', 'sans-serif']
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(0.98); }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold font-display text-slate-900 leading-none">Cross-Validation Lab</h1>
+                    <p class="text-xs text-slate-500 mt-0.5">Interactive Visual Guide for Students</p>
+                </div>
+            </div>
+            
+            <nav class="hidden md:flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
+                <button onclick="switchTab('simulator')" id="tab-simulator" class="tab-btn px-4 py-1.5 text-xs font-semibold rounded-lg bg-white text-indigo-600 shadow-sm transition">
+                    🎮 Interactive Simulator
+                </button>
+                <button onclick="switchTab('concept')" id="tab-concept" class="tab-btn px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition">
+                    💡 The Pizza Analogy
+                </button>
+                <button onclick="switchTab('quiz')" id="tab-quiz" class="tab-btn px-4 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition">
+                    ❓ Quick Check
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Key Intuition Banner -->
+        <div class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-2xl p-6 mb-6 text-white shadow-xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div class="max-w-2xl">
+                    <span class="px-3 py-1 bg-indigo-500/30 text-indigo-200 text-xs font-semibold rounded-full border border-indigo-400/30 inline-block mb-3">
+                        Machine Learning Basics
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-bold font-display tracking-tight text-white mb-2">
+                        What is Cross-Validation?
+                    </h2>
+                    <p class="text-indigo-100/90 text-sm leading-relaxed">
+                        Imagine studying for an exam using practice questions. If you practice on the <em>exact same questions</em> that will be on the final exam, you might get a 100%—not because you learned the topic, but because you memorized the answers! 
+                        <br class="hidden sm:inline">
+                        <strong>Cross-Validation</strong> rotates which data is used for training and testing so we know our AI model actually works on new, unseen data!
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/10 min-w-[280px]">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-4 h-4 rounded bg-emerald-500 flex-shrink-0"></div>
+                        <span class="text-xs text-slate-200"><strong>Training Data:</strong> Model learns from this</span>
+                    </div>
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-4 h-4 rounded bg-rose-500 flex-shrink-0"></div>
+                        <span class="text-xs text-slate-200"><strong>Validation Fold:</strong> Model is tested on this</span>
+                    </div>
+                    <div class="col-span-2 border-t border-white/10 pt-2 flex items-center justify-between text-xs text-indigo-200">
+                        <span>Goal: Average the error across all turns!</span>
+                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 1: SIMULATOR SECTION -->
+        <div id="view-simulator" class="space-y-6">
+
+            <!-- Controls Bar -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-6">
+                    <!-- Choose K (Folds) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <span>Number of Folds ($K$)</span>
+                            <span class="group relative cursor-pointer text-slate-400 hover:text-slate-600">
+                                <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-48 p-2 bg-slate-900 text-white text-[11px] rounded shadow-lg z-20 font-normal">
+                                    How many equal parts to divide the dataset into.
+                                </span>
+                            </span>
+                        </label>
+                        <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200" id="k-fold-selector">
+                            <button onclick="setFolds(3)" class="k-btn px-3 py-1.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900" data-k="3">K = 3</button>
+                            <button onclick="setFolds(5)" class="k-btn px-3 py-1.5 text-xs font-bold rounded-lg transition bg-white text-indigo-600 shadow-sm" data-k="5">K = 5</button>
+                            <button onclick="setFolds(8)" class="k-btn px-3 py-1.5 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900" data-k="8">K = 8</button>
+                        </div>
+                    </div>
+
+                    <!-- Model Type Selection -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                            Model Behavior
+                        </label>
+                        <select id="model-select" onchange="updateModelType()" class="bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="balanced">Balanced Model (Good generalization)</option>
+                            <option value="overfit">Overfitted Model (Memorizes training data)</option>
+                            <option value="underfit">Underfitted Model (Too simple)</option>
+                        </select>
+                    </div>
+
+                    <!-- Animation Speed -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                            Auto Simulation
+                        </label>
+                        <div class="flex items-center space-x-2">
+                            <button id="play-btn" onclick="togglePlay()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition flex items-center space-x-1.5 shadow-sm shadow-indigo-100">
+                                <i data-lucide="play" id="play-icon" class="w-3.5 h-3.5"></i>
+                                <span id="play-text">Auto Play</span>
+                            </button>
+                            <button onclick="resetSim()" class="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition border border-slate-200" title="Reset Simulation">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step Navigator -->
+                <div class="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+                    <button onclick="stepFold(-1)" class="p-2 border border-slate-200 rounded-xl hover:bg-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed" id="prev-step-btn">
+                        <i data-lucide="chevron-left" class="w-4 h-4 text-slate-700"></i>
+                    </button>
+                    <div class="text-center px-2">
+                        <div class="text-xs text-slate-400 uppercase font-semibold">Active Turn</div>
+                        <div class="text-sm font-bold text-slate-800" id="step-counter">Fold 1 of 5</div>
+                    </div>
+                    <button onclick="stepFold(1)" class="p-2 border border-slate-200 rounded-xl hover:bg-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed" id="next-step-btn">
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-700"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Grid: Folds Visualizer + Interactive Graph -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- Left Column: Fold Matrix & Live Calculation (7 cols) -->
+                <div class="lg:col-span-7 space-y-6">
+                    
+                    <!-- Interactive Matrix Card -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                                    <span>Dataset Splitting Matrix</span>
+                                    <span class="text-xs font-normal text-slate-500">(Click any row to test that fold)</span>
+                                </h3>
+                                <p class="text-xs text-slate-500">Each row represents 1 full training & testing cycle</p>
+                            </div>
+                            <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-md border border-indigo-100" id="matrix-status">
+                                Iteration 1/5 Active
+                            </span>
+                        </div>
+
+                        <!-- Dynamic Matrix Container -->
+                        <div id="matrix-container" class="space-y-3 my-2">
+                            <!-- Injected by JS -->
+                        </div>
+
+                        <!-- Visual Helper Footnote -->
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
+                            <div class="flex items-center gap-3">
+                                <span class="flex items-center gap-1.5">
+                                    <span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span>
+                                    <span>Training Chunk (Learns patterns)</span>
+                                </span>
+                                <span class="flex items-center gap-1.5">
+                                    <span class="w-3 h-3 rounded bg-rose-500 inline-block"></span>
+                                    <span>Validation Fold (Tested here)</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step-by-Step Mathematical Computation (No formula overload!) -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-900 mb-1 flex items-center gap-2">
+                            <i data-lucide="calculator" class="w-4 h-4 text-indigo-600"></i>
+                            <span>How the Final Cross-Validation Error is Computed</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-4">
+                            We measure the error score on the red fold for each iteration, then take the <strong>simple average</strong>.
+                        </p>
+
+                        <!-- Fold Error Pills -->
+                        <div id="error-scores-list" class="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4">
+                            <!-- Injected by JS -->
+                        </div>
+
+                        <!-- Average Error Formula Visualizer -->
+                        <div class="bg-slate-900 text-slate-100 p-4 rounded-xl relative overflow-hidden">
+                            <div class="text-xs text-slate-400 font-medium mb-1">Final Combined Result (Cross-Validation Error)</div>
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div class="text-xs font-mono bg-slate-800 px-3 py-2 rounded-lg text-slate-300 border border-slate-700" id="formula-text">
+                                    Mean Error = (E₁ + E₂ + E₃ + E₄ + E₅) ÷ 5
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-2xl font-black font-display text-amber-400" id="final-cv-score">
+                                        -- %
+                                    </div>
+                                    <div class="text-[10px] text-slate-400" id="final-cv-label">Average Error across folds</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right Column: Graphical Fitted Line Demo (5 cols) -->
+                <div class="lg:col-span-5 space-y-6">
+                    
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                                    <i data-lucide="line-chart" class="w-4 h-4 text-indigo-600"></i>
+                                    <span>Model Fitting on Active Fold</span>
+                                </h3>
+                                <p class="text-xs text-slate-500">Notice how error is ONLY measured on the red validation points!</p>
+                            </div>
+                        </div>
+
+                        <!-- 2D Interactive Scatter Canvas -->
+                        <div class="relative flex-grow min-h-[260px] bg-slate-50 rounded-xl border border-slate-200 p-2 overflow-hidden flex items-center justify-center">
+                            <canvas id="foldCanvas" class="w-full h-full block rounded-lg"></canvas>
+                        </div>
+
+                        <!-- Legend & Status -->
+                        <div class="mt-4 space-y-2">
+                            <div class="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl text-xs text-indigo-900 leading-relaxed" id="canvas-explanation">
+                                <strong>Fold 1 View:</strong> The model fits the line using the <span class="text-emerald-600 font-bold">emerald training points</span>. The length of the red dashed lines shows how far off it was on the <span class="text-rose-600 font-bold">rose test points</span>.
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+                                <div class="p-2 bg-emerald-50 border border-emerald-100 rounded-lg">
+                                    <span class="text-slate-500 block text-[10px]">Train Error</span>
+                                    <span class="font-bold text-emerald-700" id="active-train-error">0.0</span>
+                                </div>
+                                <div class="p-2 bg-rose-50 border border-rose-100 rounded-lg">
+                                    <span class="text-slate-500 block text-[10px]">Validation Error ($E_i$)</span>
+                                    <span class="font-bold text-rose-700" id="active-val-error">0.0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Comparison Box: Why Cross Validation is better than single Train-Test Split -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
+                    <i data-lucide="scale" class="w-5 h-5 text-indigo-600"></i>
+                    <span>Why not just use a single Train / Test split?</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-xl bg-amber-50/80 border border-amber-200/80">
+                        <div class="flex items-center gap-2 font-bold text-amber-900 text-xs uppercase tracking-wide mb-1">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+                            <span>Single Split (Luck-Dependent)</span>
+                        </div>
+                        <p class="text-xs text-amber-800 leading-relaxed">
+                            If you randomly put all the "easy" points in the test set, your error score looks amazingly good! If you put all "hard" outliers in test, your score looks terrible. It introduces high variance depending on luck.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-indigo-50/80 border border-indigo-200/80">
+                        <div class="flex items-center gap-2 font-bold text-indigo-900 text-xs uppercase tracking-wide mb-1">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-indigo-600"></i>
+                            <span>K-Fold Cross-Validation (Fair & Robust)</span>
+                        </div>
+                        <p class="text-xs text-indigo-800 leading-relaxed">
+                            Every single data point gets its turn to be in the test set <strong>exactly once</strong>! By averaging the errors across all $K$ rounds, you get a reliable, honest estimate of real-world performance.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: CONCEPTUAL EXPLANATION & PIZZA ANALOGY -->
+        <div id="view-concept" class="hidden space-y-6">
+            <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="max-w-3xl">
+                    <h2 class="text-2xl font-bold font-display text-slate-900 mb-3 flex items-center gap-3">
+                        <span class="text-2xl">🍕</span> The Pizza Chef Analogy
+                    </h2>
+                    <p class="text-sm text-slate-600 leading-relaxed mb-6">
+                        Understanding Machine Learning doesn't require hard math formulas. Let's understand Cross Validation through a simple cooking example!
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold mb-3">1</div>
+                            <h4 class="font-bold text-slate-900 mb-2">The Recipe (Training Data)</h4>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                A chef practices baking 4 slices of pepperoni pizza using standard baking techniques. This is how the chef learns the recipe.
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-200 text-[11px] font-semibold text-emerald-600">
+                            Train Set = Learning
+                        </div>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold mb-3">2</div>
+                            <h4 class="font-bold text-slate-900 mb-2">The Customer Taste Test (Validation)</h4>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                Instead of eating their own pizza, the chef serves 1 slice to a food critic (unseen data) to see if it actually tastes good.
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-200 text-[11px] font-semibold text-rose-600">
+                            Validation Set = Testing
+                        </div>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold mb-3">3</div>
+                            <h4 class="font-bold text-slate-900 mb-2">Rotating Customers (K-Fold)</h4>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                What if that 1 critic had weird taste? To be sure, the chef repeats this 5 times, serving a different customer each time, and takes the average score!
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-200 text-[11px] font-semibold text-indigo-600">
+                            Cross-Validation = Fair Average
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Easy Steps Summary Card -->
+                <div class="mt-8 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
+                    <h3 class="font-bold text-indigo-950 mb-3 text-sm uppercase tracking-wide">Summary: 3 Steps to Calculate CV Error</h3>
+                    <ol class="space-y-3 text-xs text-indigo-900">
+                        <li class="flex items-start gap-2.5">
+                            <span class="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">1</span>
+                            <span><strong>Split:</strong> Shuffle your dataset and divide it into $K$ equal slices (folds).</span>
+                        </li>
+                        <li class="flex items-start gap-2.5">
+                            <span class="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">2</span>
+                            <span><strong>Iterate:</strong> For each fold $i$, train the model on $K-1$ slices, and measure test error $E_i$ on slice $i$.</span>
+                        </li>
+                        <li class="flex items-start gap-2.5">
+                            <span class="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">3</span>
+                            <span><strong>Average:</strong> Add up $E_1 + E_2 + \dots + E_K$ and divide by $K$. That's your total Cross Validation Error!</span>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: INTERACTIVE QUIZ SECTION -->
+        <div id="view-quiz" class="hidden space-y-6">
+            <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-3xl mx-auto">
+                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-xl font-bold font-display text-slate-900">Test Your Understanding</h2>
+                        <p class="text-xs text-slate-500">Quick concept check for students</p>
+                    </div>
+                    <div class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1.5 rounded-xl border border-indigo-100">
+                        Score: <span id="quiz-score">0</span> / 3
+                    </div>
+                </div>
+
+                <div id="quiz-container" class="space-y-6">
+                    <!-- Questions injected by JS -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            Interactive Cross-Validation Educational Tool &bull; Designed for Machine Learning Students
+        </div>
+    </footer>
+
+    <script>
+        // App State
+        let currentTab = 'simulator';
+        let numFolds = 5;
+        let activeFold = 1; // 1-indexed
+        let modelType = 'balanced'; // 'balanced', 'overfit', 'underfit'
+        let isPlaying = false;
+        let timer = null;
+
+        // Dataset points for 2D Scatterplot
+        // (x values from 0 to 10)
+        const totalPoints = 30;
+        let dataset = [];
+
+        // Generated mock fold errors for stability across renders
+        let foldErrors = [];
+
+        // Initialize Data
+        function generateDataset() {
+            dataset = [];
+            for (let i = 0; i < totalPoints; i++) {
+                const x = (i / (totalPoints - 1)) * 10;
+                // Base target curve: y = 2 + 0.8*x + sin(x) + noise
+                const trueY = 2 + 0.8 * x + Math.sin(x * 1.2) * 1.5;
+                const noise = (Math.sin(i * 999) * 0.8); // Deterministic pseudo-random
+                dataset.push({ x: x, y: trueY + noise, trueY: trueY, id: i });
+            }
+        }
+
+        // Switch Tabs
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                btn.classList.add('text-slate-600');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+            document.getElementById(`tab-${tab}`).classList.remove('text-slate-600');
+
+            document.getElementById('view-simulator').classList.add('hidden');
+            document.getElementById('view-concept').classList.add('hidden');
+            document.getElementById('view-quiz').classList.add('hidden');
+
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+
+            if (tab === 'simulator') {
+                setTimeout(renderAll, 50);
+            }
+        }
+
+        // Set number of folds
+        function setFolds(k) {
+            numFolds = k;
+            activeFold = 1;
+            
+            // Update button styles
+            document.querySelectorAll('.k-btn').forEach(btn => {
+                const bK = parseInt(btn.getAttribute('data-k'));
+                if (bK === k) {
+                    btn.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+                    btn.classList.remove('text-slate-600');
+                } else {
+                    btn.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                    btn.classList.add('text-slate-600');
+                }
+            });
+
+            calculateFoldErrors();
+            renderAll();
+        }
+
+        // Update Model Type
+        function updateModelType() {
+            modelType = document.getElementById('model-select').value;
+            calculateFoldErrors();
+            renderAll();
+        }
+
+        // Calculate fold errors based on model complexity
+        function calculateFoldErrors() {
+            foldErrors = [];
+            for (let f = 1; f <= numFolds; f++) {
+                let base = 0;
+                let variance = 0;
+
+                if (modelType === 'balanced') {
+                    base = 11.5;
+                    variance = (Math.sin(f * 3.7) * 2.2);
+                } else if (modelType === 'overfit') {
+                    base = 28.4; // High validation error
+                    variance = (Math.cos(f * 2.1) * 6.5);
+                } else if (modelType === 'underfit') {
+                    base = 22.0; // Consistently poor validation error
+                    variance = (Math.sin(f * 1.5) * 1.2);
+                }
+
+                const err = Math.max(3.0, (base + variance)).toFixed(1);
+                foldErrors.push(parseFloat(err));
+            }
+        }
+
+        // Play/Pause Auto Step
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const playText = document.getElementById('play-text');
+            const playIcon = document.getElementById('play-icon');
+
+            if (isPlaying) {
+                playText.innerText = "Pause";
+                playIcon.setAttribute('data-lucide', 'pause');
+                lucide.createIcons();
+                timer = setInterval(() => {
+                    stepFold(1);
+                }, 1800);
+            } else {
+                clearInterval(timer);
+                playText.innerText = "Auto Play";
+                playIcon.setAttribute('data-lucide', 'play');
+                lucide.createIcons();
+            }
+        }
+
+        function resetSim() {
+            if (isPlaying) togglePlay();
+            activeFold = 1;
+            renderAll();
+        }
+
+        function stepFold(dir) {
+            activeFold += dir;
+            if (activeFold > numFolds) activeFold = 1;
+            if (activeFold < 1) activeFold = numFolds;
+            renderAll();
+        }
+
+        function selectFoldDirectly(foldIndex) {
+            if (isPlaying) togglePlay();
+            activeFold = foldIndex;
+            renderAll();
+        }
+
+        // Render Matrix & Interface
+        function renderAll() {
+            // Update step indicators
+            document.getElementById('step-counter').innerText = `Fold ${activeFold} of ${numFolds}`;
+            document.getElementById('matrix-status').innerText = `Iteration ${activeFold}/${numFolds} Active`;
+
+            // 1. Render Matrix Rows
+            const matrixContainer = document.getElementById('matrix-container');
+            matrixContainer.innerHTML = '';
+
+            for (let f = 1; f <= numFolds; f++) {
+                const isActive = (f === activeFold);
+                const row = document.createElement('div');
+                row.className = `flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
+                    isActive 
+                    ? 'bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-sm' 
+                    : 'bg-slate-50 border-slate-200/80 hover:bg-slate-100/80'
+                }`;
+                row.onclick = () => selectFoldDirectly(f);
+
+                // Row Title
+                const title = document.createElement('div');
+                title.className = `w-16 text-xs font-bold ${isActive ? 'text-indigo-900' : 'text-slate-600'}`;
+                title.innerText = `Turn ${f}`;
+                row.appendChild(title);
+
+                // Chunks Bar
+                const chunksContainer = document.createElement('div');
+                chunksContainer.className = 'flex-grow grid gap-1.5 h-7';
+                chunksContainer.style.gridTemplateColumns = `repeat(${numFolds}, minmax(0, 1fr))`;
+
+                for (let c = 1; c <= numFolds; c++) {
+                    const chunk = document.createElement('div');
+                    const isValidation = (c === f);
+                    
+                    if (isValidation) {
+                        chunk.className = `rounded-md flex items-center justify-center text-[10px] font-extrabold text-white bg-rose-500 shadow-sm transition ${
+                            isActive ? 'scale-[1.03] ring-2 ring-rose-400' : 'opacity-85'
+                        }`;
+                        chunk.innerText = 'TEST';
+                    } else {
+                        chunk.className = `rounded-md flex items-center justify-center text-[10px] font-semibold text-emerald-900 bg-emerald-200/90 transition ${
+                            isActive ? 'bg-emerald-500 text-white font-bold' : ''
+                        }`;
+                        chunk.innerText = 'TRAIN';
+                    }
+                    chunksContainer.appendChild(chunk);
+                }
+                row.appendChild(chunksContainer);
+
+                // Score tag
+                const scoreTag = document.createElement('div');
+                scoreTag.className = `w-20 text-right text-xs font-bold font-mono ${
+                    isActive ? 'text-indigo-700' : 'text-slate-500'
+                }`;
+                scoreTag.innerText = `E${f} = ${foldErrors[f-1]}%`;
+                row.appendChild(scoreTag);
+
+                matrixContainer.appendChild(row);
+            }
+
+            // 2. Render Score Cards
+            const scoresList = document.getElementById('error-scores-list');
+            scoresList.innerHTML = '';
+            
+            let sumError = 0;
+            foldErrors.forEach((err, idx) => {
+                sumError += err;
+                const fNum = idx + 1;
+                const isActive = (fNum === activeFold);
+                
+                const card = document.createElement('div');
+                card.className = `p-2 rounded-xl text-center border transition ${
+                    isActive 
+                    ? 'bg-rose-500 text-white border-rose-600 shadow-sm scale-105' 
+                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                }`;
+                card.innerHTML = `
+                    <div class="text-[10px] opacity-80 uppercase font-semibold">E${fNum}</div>
+                    <div class="text-xs font-bold font-mono">${err}%</div>
+                `;
+                scoresList.appendChild(card);
+            });
+
+            // 3. Formula text & Average
+            const avgError = (sumError / numFolds).toFixed(1);
+            document.getElementById('final-cv-score').innerText = `${avgError}%`;
+
+            const formulaTerms = foldErrors.map((_, i) => `E${i+1}`).join(' + ');
+            document.getElementById('formula-text').innerText = `CV Error = (${formulaTerms}) ÷ ${numFolds}`;
+
+            // Update status description text
+            const modelDescriptions = {
+                'balanced': 'The balanced model learns general trends. Errors remain low across all folds.',
+                'overfit': 'High error! The overfitted model memorizes training folds but fails on red validation folds.',
+                'underfit': 'Consistently high error! The model is too simple to capture the underlying pattern.'
+            };
+            document.getElementById('canvas-explanation').innerHTML = `
+                <strong>Turn ${activeFold} View:</strong> ${modelDescriptions[modelType]} 
+                Validation error on Fold ${activeFold} is <span class="text-rose-600 font-bold">${foldErrors[activeFold-1]}%</span>.
+            `;
+
+            // Active Train/Val errors
+            const activeVal = foldErrors[activeFold-1];
+            const activeTrain = modelType === 'overfit' ? 1.2 : (modelType === 'underfit' ? 21.5 : 8.4);
+            document.getElementById('active-train-error').innerText = `${activeTrain}%`;
+            document.getElementById('active-val-error').innerText = `${activeVal}%`;
+
+            // Draw Canvas
+            drawScatterCanvas();
+        }
+
+        function drawScatterCanvas() {
+            const canvas = document.getElementById('foldCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Responsive sizing
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const width = rect.width;
+            const height = rect.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Padding
+            const padding = { top: 20, right: 20, bottom: 30, left: 35 };
+            const graphW = width - padding.left - padding.right;
+            const graphH = height - padding.top - padding.bottom;
+
+            // Mapping helpers
+            const minX = 0, maxX = 10;
+            const minY = 0, maxY = 12;
+
+            function toX(x) { return padding.left + ((x - minX) / (maxX - minX)) * graphW; }
+            function toY(y) { return padding.top + graphH - ((y - minY) / (maxY - minY)) * graphH; }
+
+            // Draw Grid Lines
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let yVal = 0; yVal <= 12; yVal += 3) {
+                const py = toY(yVal);
+                ctx.moveTo(padding.left, py);
+                ctx.lineTo(width - padding.right, py);
+            }
+            ctx.stroke();
+
+            // Determine points assignment (Train vs Validation)
+            // Divide dataset into numFolds chunks
+            const chunkSize = Math.ceil(totalPoints / numFolds);
+            const valStartIndex = (activeFold - 1) * chunkSize;
+            const valEndIndex = Math.min(totalPoints, valStartIndex + chunkSize);
+
+            // Predict function based on modelType
+            function getModelPrediction(x) {
+                if (modelType === 'underfit') {
+                    // Straight horizontal line
+                    return 5.5;
+                } else if (modelType === 'balanced') {
+                    // Smooth balanced curve
+                    return 2 + 0.8 * x + Math.sin(x * 1.2) * 1.2;
+                } else if (modelType === 'overfit') {
+                    // Highly wiggly line memorizing points
+                    return 2 + 0.8 * x + Math.sin(x * 1.2) * 1.5 + Math.sin(x * 6 + activeFold) * 1.8;
+                }
+            }
+
+            // Draw Residual Lines for Validation Points first (Behind points)
+            for (let i = 0; i < totalPoints; i++) {
+                const pt = dataset[i];
+                const isValidation = (i >= valStartIndex && i < valEndIndex);
+
+                if (isValidation) {
+                    const predY = getModelPrediction(pt.x);
+                    ctx.strokeStyle = '#f43f5e'; // Rose color
+                    ctx.setLineDash([3, 3]);
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(toX(pt.x), toY(pt.y));
+                    ctx.lineTo(toX(pt.x), toY(predY));
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            // Draw Model Fitted Curve
+            ctx.strokeStyle = '#4f46e5'; // Indigo
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let px = 0; px <= graphW; px += 2) {
+                const xVal = minX + (px / graphW) * (maxX - minX);
+                const yVal = getModelPrediction(xVal);
+                const canvasX = padding.left + px;
+                const canvasY = toY(yVal);
+
+                if (px === 0) ctx.moveTo(canvasX, canvasY);
+                else ctx.lineTo(canvasX, canvasY);
+            }
+            ctx.stroke();
+
+            // Draw Data Points
+            for (let i = 0; i < totalPoints; i++) {
+                const pt = dataset[i];
+                const isValidation = (i >= valStartIndex && i < valEndIndex);
+
+                const cx = toX(pt.x);
+                const cy = toY(pt.y);
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, isValidation ? 6 : 4.5, 0, Math.PI * 2);
+
+                if (isValidation) {
+                    ctx.fillStyle = '#f43f5e'; // Rose
+                    ctx.shadowColor = 'rgba(244, 63, 94, 0.4)';
+                    ctx.shadowBlur = 8;
+                } else {
+                    ctx.fillStyle = '#10b981'; // Emerald
+                    ctx.shadowBlur = 0;
+                }
+                ctx.fill();
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.shadowBlur = 0; // reset
+            }
+
+            // Draw Axis Labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText('Input (X)', width / 2 - 15, height - 5);
+        }
+
+        // Quiz Questions Data
+        const quizQuestions = [
+            {
+                q: "Why do we average the validation error across all K folds?",
+                options: [
+                    "To make the error score artificially smaller.",
+                    "To get a fair, stable estimate that doesn't depend on a lucky data split.",
+                    "Because machine learning algorithms require division.",
+                    "To train the model K times faster."
+                ],
+                correct: 1,
+                explanation: "Correct! Averaging across all folds ensures every data point is tested once, reducing bias from a single lucky or unlucky split."
+            },
+            {
+                q: "In a 5-fold cross-validation, how much of the dataset is used for testing in each turn?",
+                options: [
+                    "50% of the dataset",
+                    "100% of the dataset",
+                    "20% (1/5th) of the dataset",
+                    "80% of the dataset"
+                ],
+                correct: 2,
+                explanation: "Spot on! In 5-fold CV, 1/5th (20%) is used for testing in each fold, and 4/5ths (80%) is used for training."
+            },
+            {
+                q: "What happens if a model is heavily OVERFITTED during Cross-Validation?",
+                options: [
+                    "It gets high error on training data and low error on validation data.",
+                    "It gets low error on training folds but much higher error on validation folds.",
+                    "It performs perfectly on both training and validation folds.",
+                    "Cross-Validation cannot be computed."
+                ],
+                correct: 1,
+                explanation: "Exactly! An overfitted model memorizes the training folds but fails when tested on unseen validation folds."
+            }
+        ];
+
+        let quizScores = [null, null, null];
+
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = '';
+
+            quizQuestions.forEach((q, qIdx) => {
+                const card = document.createElement('div');
+                card.className = 'p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3';
+
+                const title = document.createElement('h4');
+                title.className = 'font-bold text-sm text-slate-900 flex items-start gap-2';
+                title.innerHTML = `<span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">${qIdx + 1}</span> ${q.q}`;
+                card.appendChild(title);
+
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'space-y-2 pt-1';
+
+                q.options.forEach((opt, oIdx) => {
+                    const isSelected = (quizScores[qIdx] === oIdx);
+                    const isAnswered = (quizScores[qIdx] !== null);
+                    const isCorrect = (oIdx === q.correct);
+
+                    let btnStyle = "bg-white text-slate-700 border-slate-200 hover:bg-slate-100";
+                    if (isAnswered) {
+                        if (isCorrect) {
+                            btnStyle = "bg-emerald-500 text-white border-emerald-600 font-semibold";
+                        } else if (isSelected && !isCorrect) {
+                            btnStyle = "bg-rose-500 text-white border-rose-600 font-semibold";
+                        } else {
+                            btnStyle = "bg-white text-slate-400 border-slate-200 opacity-60";
+                        }
+                    }
+
+                    const optBtn = document.createElement('button');
+                    optBtn.className = `w-full text-left p-3 text-xs rounded-xl border transition ${btnStyle}`;
+                    optBtn.disabled = isAnswered;
+                    optBtn.innerText = opt;
+                    optBtn.onclick = () => answerQuiz(qIdx, oIdx);
+                    optionsDiv.appendChild(optBtn);
+                });
+
+                card.appendChild(optionsDiv);
+
+                if (quizScores[qIdx] !== null) {
+                    const fb = document.createElement('div');
+                    fb.className = `p-3 rounded-xl text-xs ${
+                        quizScores[qIdx] === q.correct ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' : 'bg-rose-50 text-rose-900 border border-rose-200'
+                    }`;
+                    fb.innerText = q.explanation;
+                    card.appendChild(fb);
+                }
+
+                container.appendChild(card);
+            });
+
+            // Update score counter
+            const scoreCount = quizScores.filter((s, idx) => s === quizQuestions[idx].correct).length;
+            document.getElementById('quiz-score').innerText = scoreCount;
+        }
+
+        function answerQuiz(qIdx, oIdx) {
+            quizScores[qIdx] = oIdx;
+            renderQuiz();
+        }
+
+        // Initialize on Load
+        window.onload = function() {
+            generateDataset();
+            calculateFoldErrors();
+            renderAll();
+            renderQuiz();
+            lucide.createIcons();
+
+            // Handle window resize for canvas redrawing
+            window.addEventListener('resize', () => {
+                if (currentTab === 'simulator') {
+                    drawScatterCanvas();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
