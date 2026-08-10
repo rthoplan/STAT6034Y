@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confusion Matrix Quest - Interactive ML Quiz</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        tp: '#10b981', // Emerald green
+                        fn: '#ef4444', // Red
+                        fp: '#f59e0b', // Amber/Yellow
+                        tn: '#3b82f6', // Blue
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism effects */
+        .glass-card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px -10px rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        /* Pulse glow animation */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.03); }
+        }
+        .animate-glow {
+            animation: pulse-glow 4s infinite ease-in-out;
+        }
+
+        /* Custom canvas background styling */
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: auto;
+        }
+
+        /* Confetti canvas */
+        #confettiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4f46e5;
+        }
+
+        /* Tooltip styling */
+        .tooltip-box {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .has-tooltip:hover .tooltip-box {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative selection:bg-brand-500 selection:text-white">
+
+    <!-- Dynamic Animated Background Canvas -->
+    <canvas id="bgCanvas"></canvas>
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Main Container -->
+    <div class="relative z-10 flex flex-col min-h-screen">
+        
+        <!-- Header / Navigation Bar -->
+        <header class="w-full glass-card border-b border-gray-800/80 sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                
+                <!-- Logo & Brand -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="app.showScreen('welcome')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid fa-table-cells"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white leading-tight flex items-center gap-2">
+                            MatrixQuest
+                            <span class="text-xs font-mono bg-brand-500/20 text-brand-300 px-2 py-0.5 rounded-full border border-brand-500/30">ML Quiz</span>
+                        </h1>
+                        <p class="text-xs text-gray-400">Confusion Matrix & Evaluation Metrics</p>
+                    </div>
+                </div>
+
+                <!-- Header Actions & Navigation -->
+                <div class="flex items-center space-x-3">
+                    <!-- Audio Toggle -->
+                    <button id="soundToggleBtn" onclick="app.toggleSound()" class="p-2.5 rounded-xl glass-card text-gray-300 hover:text-white hover:bg-gray-800/60 transition flex items-center justify-center" title="Toggle Sound Effects">
+                        <i id="soundIcon" class="fa-solid fa-volume-high text-brand-400"></i>
+                    </button>
+
+                    <!-- Formula Reference Button -->
+                    <button onclick="app.openModal('formulaModal')" class="px-3 py-2 rounded-xl glass-card text-gray-300 hover:text-white hover:bg-gray-800/60 transition text-xs sm:text-sm font-medium flex items-center space-x-2">
+                        <i class="fa-solid fa-book-open text-brand-400"></i>
+                        <span class="hidden sm:inline">Cheat Sheet</span>
+                    </button>
+
+                    <!-- Sandbox Mode Button -->
+                    <button onclick="app.showScreen('sandbox')" class="px-3 py-2 rounded-xl bg-gray-800/80 hover:bg-gray-700 text-indigo-300 transition text-xs sm:text-sm font-medium border border-indigo-500/30 flex items-center space-x-2">
+                        <i class="fa-solid fa-sliders text-indigo-400"></i>
+                        <span class="hidden sm:inline">Matrix Sandbox</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col justify-center">
+
+            <!-- 1. WELCOME / START SCREEN -->
+            <section id="screenWelcome" class="transition-all duration-500">
+                <div class="max-w-4xl mx-auto text-center space-y-8">
+                    
+                    <!-- Hero Header -->
+                    <div class="space-y-4">
+                        <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full glass-card border border-indigo-500/30 text-indigo-300 text-xs font-mono uppercase tracking-wider mb-2">
+                            <i class="fa-solid fa-sparkles text-amber-400 animate-pulse"></i>
+                            <span>Interactive Machine Learning Challenge</span>
+                        </div>
+                        <h1 class="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-none">
+                            Master the <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-400 via-indigo-300 to-emerald-400">Confusion Matrix</span>
+                        </h1>
+                        <p class="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto font-light">
+                            Test your ability to evaluate classifier performance across 5 real-world scenarios. Calculate <span class="text-emerald-400 font-semibold">Accuracy</span>, <span class="text-indigo-400 font-semibold">Sensitivity</span>, <span class="text-amber-400 font-semibold">Specificity</span>, and <span class="text-blue-400 font-semibold">Precision</span>.
+                        </p>
+                    </div>
+
+                    <!-- Quick Matrix Preview Card -->
+                    <div class="glass-card p-6 rounded-2xl max-w-lg mx-auto shadow-2xl border border-gray-800">
+                        <h3 class="text-xs font-mono text-gray-400 uppercase tracking-widest mb-4">Core Metrics covered</h3>
+                        <div class="grid grid-cols-2 gap-3 text-left font-mono text-xs">
+                            <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/50">
+                                <span class="text-emerald-400 font-bold block text-sm">Accuracy</span>
+                                <span class="text-gray-400 text-[11px]">(TP + TN) / Total</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-indigo-950/40 border border-indigo-800/50">
+                                <span class="text-indigo-400 font-bold block text-sm">Sensitivity (Recall)</span>
+                                <span class="text-gray-400 text-[11px]">TP / (TP + FN)</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-amber-950/40 border border-amber-800/50">
+                                <span class="text-amber-400 font-bold block text-sm">Specificity</span>
+                                <span class="text-gray-400 text-[11px]">TN / (TN + FP)</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-blue-950/40 border border-blue-800/50">
+                                <span class="text-blue-400 font-bold block text-sm">Precision</span>
+                                <span class="text-gray-400 text-[11px]">TP / (TP + FP)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mode Select Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto pt-2">
+                        <!-- Standard Quiz Mode -->
+                        <button onclick="app.startQuiz('standard')" class="glass-card p-6 rounded-2xl text-left glass-card-hover group relative overflow-hidden border border-brand-500/30">
+                            <div class="absolute top-0 right-0 w-24 h-24 bg-brand-500/10 rounded-full blur-xl group-hover:bg-brand-500/20 transition"></div>
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center text-2xl group-hover:scale-110 transition">
+                                    <i class="fa-solid fa-gamepad"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-white text-lg group-hover:text-brand-300 transition">Standard Quiz</h3>
+                                    <p class="text-xs text-gray-400 mt-1">5 Scenarios • Step-by-step feedback • Hints & formulas included</p>
+                                </div>
+                            </div>
+                        </button>
+
+                        <!-- Timed Challenge Mode -->
+                        <button onclick="app.startQuiz('timed')" class="glass-card p-6 rounded-2xl text-left glass-card-hover group relative overflow-hidden border border-amber-500/30">
+                            <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition"></div>
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl group-hover:scale-110 transition">
+                                    <i class="fa-solid fa-stopwatch"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-white text-lg group-hover:text-amber-300 transition">Timed Speed Run</h3>
+                                    <p class="text-xs text-gray-400 mt-1">Race against time • Earn multiplier points for high accuracy</p>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="pt-4 flex items-center justify-center gap-6 text-sm text-gray-400">
+                        <span><i class="fa-solid fa-bullseye text-brand-400 mr-2"></i>5 Unique Real-world Scenarios</span>
+                        <span><i class="fa-solid fa-calculator text-emerald-400 mr-2"></i>Built-in Helper Tools</span>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 2. QUIZ / GAMEPLAY SCREEN -->
+            <section id="screenQuiz" class="hidden transition-all duration-500">
+                <div class="max-w-6xl mx-auto space-y-6">
+                    
+                    <!-- Top Status Bar (Score, Scenario Progress, Timer, Streak) -->
+                    <div class="glass-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-gray-800">
+                        
+                        <!-- Scenario Tracker -->
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xs font-mono text-gray-400 uppercase tracking-widest">Scenario</span>
+                            <div class="flex space-x-1.5" id="scenarioDots">
+                                <!-- Dots generated dynamically -->
+                            </div>
+                            <span id="scenarioNumberText" class="text-sm font-semibold text-white ml-2">1/5</span>
+                        </div>
+
+                        <!-- Timer (Shown if timed mode) -->
+                        <div id="timerContainer" class="hidden flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl font-mono text-amber-300 text-sm font-semibold">
+                            <i class="fa-solid fa-clock animate-pulse"></i>
+                            <span id="timeLeft">45s</span>
+                        </div>
+
+                        <!-- Streak & Score -->
+                        <div class="flex items-center space-x-6">
+                            <!-- Streak -->
+                            <div class="flex items-center space-x-2 text-amber-400">
+                                <i class="fa-solid fa-fire text-lg"></i>
+                                <div class="text-left leading-none">
+                                    <span class="text-[10px] text-gray-400 uppercase font-mono block">Streak</span>
+                                    <span id="streakCount" class="font-bold text-sm">0x</span>
+                                </div>
+                            </div>
+
+                            <!-- Score -->
+                            <div class="flex items-center space-x-2 text-indigo-400">
+                                <i class="fa-solid fa-trophy text-lg"></i>
+                                <div class="text-left leading-none">
+                                    <span class="text-[10px] text-gray-400 uppercase font-mono block">Score</span>
+                                    <span id="scoreText" class="font-bold text-base text-white">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Main Gameplay Grid: Scenario Info & Interactive Matrix + Question Panel -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        
+                        <!-- LEFT COLUMN: Scenario Context & Interactive Matrix (5 Cols) -->
+                        <div class="lg:col-span-5 space-y-6">
+                            
+                            <!-- Scenario Details Header -->
+                            <div class="glass-card p-6 rounded-2xl relative overflow-hidden border border-brand-500/30">
+                                <div id="scenarioBadge" class="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/40 mb-3">
+                                    <i id="scenarioIcon" class="fa-solid fa-users"></i>
+                                    <span id="scenarioCategory">Customer Churn</span>
+                                </div>
+                                <h2 id="scenarioTitle" class="text-2xl font-bold text-white mb-2">Telecom Churn Model</h2>
+                                <p id="scenarioDesc" class="text-sm text-gray-300 leading-relaxed">
+                                    A telecom operator built a model to predict customer churn (customers leaving the service). Here are the model's predictions vs actual outcomes.
+                                </p>
+                            </div>
+
+                            <!-- Confusion Matrix Visualizer -->
+                            <div class="glass-card p-5 rounded-2xl space-y-3 border border-gray-800">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h3 class="text-xs font-mono text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                        <i class="fa-solid fa-table-cells text-brand-400"></i> Confusion Matrix
+                                    </h3>
+                                    <span class="text-[11px] text-gray-400">Hover cells for detail</span>
+                                </div>
+
+                                <!-- The Matrix Table Structure -->
+                                <div class="w-full bg-gray-950/60 p-3 rounded-xl border border-gray-800 text-xs sm:text-sm">
+                                    <!-- Header Row -->
+                                    <div class="grid grid-cols-3 gap-2 mb-2 text-center font-semibold text-gray-400">
+                                        <div class="p-2"></div>
+                                        <div class="p-2 bg-gray-900/80 rounded-lg border border-gray-800 text-brand-300" id="matrixCol1Header">Predicted Churn</div>
+                                        <div class="p-2 bg-gray-900/80 rounded-lg border border-gray-800 text-brand-300" id="matrixCol2Header">Predicted Stay</div>
+                                    </div>
+
+                                    <!-- Row 1: Actual Positive -->
+                                    <div class="grid grid-cols-3 gap-2 mb-2">
+                                        <div class="p-2 bg-gray-900/80 rounded-lg border border-gray-800 font-semibold text-gray-300 flex items-center justify-center text-center leading-tight" id="matrixRow1Header">
+                                            Actual Churn
+                                        </div>
+                                        
+                                        <!-- TP Cell -->
+                                        <div class="has-tooltip relative p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-center hover:bg-emerald-900/50 transition cursor-help">
+                                            <div class="text-[10px] font-mono text-emerald-400 uppercase font-bold">TP (True Pos)</div>
+                                            <div id="cellTP" class="text-2xl font-extrabold text-emerald-300 font-mono my-1">35</div>
+                                            <div class="text-[10px] text-emerald-400/80">Correct Churn</div>
+                                            <!-- Tooltip -->
+                                            <div class="tooltip-box absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 rounded-lg bg-emerald-950 border border-emerald-500 text-[11px] text-emerald-200 shadow-xl z-20">
+                                                Actual = Positive, Predicted = Positive. Correctly flagged churners!
+                                            </div>
+                                        </div>
+
+                                        <!-- FN Cell -->
+                                        <div class="has-tooltip relative p-3 rounded-xl bg-red-950/50 border border-red-500/40 text-center hover:bg-red-900/50 transition cursor-help">
+                                            <div class="text-[10px] font-mono text-red-400 uppercase font-bold">FN (False Neg)</div>
+                                            <div id="cellFN" class="text-2xl font-extrabold text-red-300 font-mono my-1">15</div>
+                                            <div class="text-[10px] text-red-400/80">Missed Churn</div>
+                                            <!-- Tooltip -->
+                                            <div class="tooltip-box absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 rounded-lg bg-red-950 border border-red-500 text-[11px] text-red-200 shadow-xl z-20">
+                                                Actual = Positive, Predicted = Negative. Missed churners who left!
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Row 2: Actual Negative -->
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <div class="p-2 bg-gray-900/80 rounded-lg border border-gray-800 font-semibold text-gray-300 flex items-center justify-center text-center leading-tight" id="matrixRow2Header">
+                                            Actual Stay
+                                        </div>
+
+                                        <!-- FP Cell -->
+                                        <div class="has-tooltip relative p-3 rounded-xl bg-amber-950/50 border border-amber-500/40 text-center hover:bg-amber-900/50 transition cursor-help">
+                                            <div class="text-[10px] font-mono text-amber-400 uppercase font-bold">FP (False Pos)</div>
+                                            <div id="cellFP" class="text-2xl font-extrabold text-amber-300 font-mono my-1">20</div>
+                                            <div class="text-[10px] text-amber-400/80">False Alarm</div>
+                                            <!-- Tooltip -->
+                                            <div class="tooltip-box absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 rounded-lg bg-amber-950 border border-amber-500 text-[11px] text-amber-200 shadow-xl z-20">
+                                                Actual = Negative, Predicted = Positive. Falsely predicted stayers would churn!
+                                            </div>
+                                        </div>
+
+                                        <!-- TN Cell -->
+                                        <div class="has-tooltip relative p-3 rounded-xl bg-blue-950/50 border border-blue-500/40 text-center hover:bg-blue-900/50 transition cursor-help">
+                                            <div class="text-[10px] font-mono text-blue-400 uppercase font-bold">TN (True Neg)</div>
+                                            <div id="cellTN" class="text-2xl font-extrabold text-blue-300 font-mono my-1">130</div>
+                                            <div class="text-[10px] text-blue-400/80">Correct Stay</div>
+                                            <!-- Tooltip -->
+                                            <div class="tooltip-box absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 rounded-lg bg-blue-950 border border-blue-500 text-[11px] text-blue-200 shadow-xl z-20">
+                                                Actual = Negative, Predicted = Negative. Correctly predicted stayers!
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Summary Total Bar -->
+                                    <div class="mt-3 pt-2 border-t border-gray-800/80 flex justify-between text-xs text-gray-400 font-mono">
+                                        <span>Total Samples (N): <strong id="cellTotal" class="text-white">200</strong></span>
+                                        <span>Actual Positives: <strong id="cellActualPos" class="text-emerald-400">50</strong></span>
+                                    </div>
+                                </div>
+
+                                <!-- On-Screen Calculator Trigger -->
+                                <button onclick="app.toggleCalculator()" class="w-full py-2 px-3 rounded-xl bg-gray-800/60 hover:bg-gray-800 text-xs text-gray-300 flex items-center justify-center space-x-2 transition border border-gray-700/50">
+                                    <i class="fa-solid fa-calculator text-indigo-400"></i>
+                                    <span>Toggle Quick Scratchpad Calculator</span>
+                                </button>
+
+                                <!-- On-Screen Popover Scratchpad Calculator -->
+                                <div id="scratchpadCalc" class="hidden p-3 rounded-xl bg-gray-900 border border-gray-700 space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-mono text-indigo-300">Quick Division Tool</span>
+                                        <button onclick="app.toggleCalculator()" class="text-gray-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                    <div class="flex items-center gap-2 font-mono">
+                                        <input type="number" id="calcNum" placeholder="Num" class="w-1/3 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-white">
+                                        <span class="text-gray-400">/</span>
+                                        <input type="number" id="calcDen" placeholder="Den" class="w-1/3 bg-gray-950 border border-gray-700 rounded px-2 py-1 text-xs text-white">
+                                        <button onclick="app.runCalc()" class="w-1/3 bg-indigo-600 hover:bg-indigo-500 text-white rounded py-1 text-xs font-bold">=</button>
+                                    </div>
+                                    <div id="calcResult" class="text-xs font-mono text-emerald-400 text-center font-bold">--</div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- RIGHT COLUMN: Questions & Feedback Panel (7 Cols) -->
+                        <div class="lg:col-span-7 flex flex-col justify-between">
+                            
+                            <div class="glass-card p-6 rounded-2xl border border-gray-800 space-y-6 flex-grow flex flex-col justify-between">
+                                
+                                <div class="space-y-4">
+                                    <!-- Question Header -->
+                                    <div class="flex items-center justify-between">
+                                        <span id="questionCategoryTag" class="text-xs font-mono uppercase tracking-wider text-brand-400 font-semibold px-2.5 py-1 rounded-md bg-brand-500/10 border border-brand-500/20">
+                                            Question 1 of 4
+                                        </span>
+                                        <span id="questionPoints" class="text-xs font-mono text-amber-400 flex items-center gap-1">
+                                            <i class="fa-solid fa-coins"></i> +100 pts
+                                        </span>
+                                    </div>
+
+                                    <!-- Question Prompt -->
+                                    <h3 id="questionPrompt" class="text-xl sm:text-2xl font-bold text-white leading-snug">
+                                        What is the <span class="text-emerald-400">Accuracy</span> of this churn prediction model?
+                                    </h3>
+
+                                    <!-- Options Container -->
+                                    <div id="optionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                        <!-- Dynamic Multiple Choice Options -->
+                                    </div>
+                                </div>
+
+                                <!-- Feedback & Explanation Box -->
+                                <div id="feedbackBox" class="hidden p-4 rounded-xl space-y-2 transition-all border">
+                                    <div class="flex items-center space-x-2 font-bold text-base" id="feedbackTitle">
+                                        <!-- Correct / Incorrect Icon & Title -->
+                                    </div>
+                                    <p id="feedbackText" class="text-xs sm:text-sm text-gray-200 leading-relaxed font-mono">
+                                        <!-- Step by step math formula explanation -->
+                                    </p>
+                                </div>
+
+                                <!-- Question Actions Bar -->
+                                <div class="pt-4 border-t border-gray-800/80 flex items-center justify-between">
+                                    <button id="hintBtn" onclick="app.showHint()" class="text-xs text-gray-400 hover:text-amber-300 transition flex items-center space-x-1.5">
+                                        <i class="fa-regular fa-lightbulb text-amber-400"></i>
+                                        <span>Need a hint?</span>
+                                    </button>
+
+                                    <button id="nextQuestionBtn" onclick="app.nextQuestion()" class="hidden px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-brand-500/20 transition flex items-center space-x-2">
+                                        <span>Next Question</span>
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 3. MATRIX SANDBOX / SIMULATOR SCREEN -->
+            <section id="screenSandbox" class="hidden transition-all duration-500">
+                <div class="max-w-5xl mx-auto space-y-6">
+                    
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-sliders text-indigo-400"></i> Interactive Confusion Matrix Sandbox
+                            </h2>
+                            <p class="text-sm text-gray-400">Adjust the TP, FN, FP, and TN counts to see how metrics react in real time.</p>
+                        </div>
+                        <button onclick="app.showScreen('welcome')" class="px-4 py-2 rounded-xl glass-card text-xs text-gray-300 hover:text-white transition">
+                            <i class="fa-solid fa-house mr-1"></i> Back to Home
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        
+                        <!-- Controls Column -->
+                        <div class="md:col-span-5 glass-card p-6 rounded-2xl space-y-5 border border-gray-800">
+                            <h3 class="text-xs font-mono text-gray-400 uppercase tracking-widest">Adjust Cell Values</h3>
+
+                            <!-- TP Slider -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-mono">
+                                    <span class="text-emerald-400 font-bold">True Positives (TP)</span>
+                                    <span id="sbValTP" class="text-emerald-300 font-bold">35</span>
+                                </div>
+                                <input type="range" id="sbSliderTP" min="0" max="200" value="35" oninput="app.updateSandbox()" class="w-full accent-emerald-500">
+                            </div>
+
+                            <!-- FN Slider -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-mono">
+                                    <span class="text-red-400 font-bold">False Negatives (FN)</span>
+                                    <span id="sbValFN" class="text-red-300 font-bold">15</span>
+                                </div>
+                                <input type="range" id="sbSliderFN" min="0" max="200" value="15" oninput="app.updateSandbox()" class="w-full accent-red-500">
+                            </div>
+
+                            <!-- FP Slider -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-mono">
+                                    <span class="text-amber-400 font-bold">False Positives (FP)</span>
+                                    <span id="sbValFP" class="text-amber-300 font-bold">20</span>
+                                </div>
+                                <input type="range" id="sbSliderFP" min="0" max="200" value="20" oninput="app.updateSandbox()" class="w-full accent-amber-500">
+                            </div>
+
+                            <!-- TN Slider -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-mono">
+                                    <span class="text-blue-400 font-bold">True Negatives (TN)</span>
+                                    <span id="sbValTN" class="text-blue-300 font-bold">130</span>
+                                </div>
+                                <input type="range" id="sbSliderTN" min="0" max="200" value="130" oninput="app.updateSandbox()" class="w-full accent-blue-500">
+                            </div>
+
+                            <div class="pt-2 border-t border-gray-800 text-xs text-gray-400 flex justify-between font-mono">
+                                <span>Total Dataset (N):</span>
+                                <span id="sbTotal" class="text-white font-bold">200</span>
+                            </div>
+                        </div>
+
+                        <!-- Live Gauges & Output Column -->
+                        <div class="md:col-span-7 space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- Accuracy Gauge -->
+                                <div class="glass-card p-5 rounded-2xl border border-emerald-500/30 text-center space-y-2">
+                                    <span class="text-xs font-mono text-gray-400 uppercase">Accuracy</span>
+                                    <div id="sbAccGauge" class="text-3xl font-extrabold text-emerald-400 font-mono">82.5%</div>
+                                    <p class="text-[11px] text-gray-400 font-mono">(TP + TN) / Total</p>
+                                </div>
+
+                                <!-- Sensitivity Gauge -->
+                                <div class="glass-card p-5 rounded-2xl border border-indigo-500/30 text-center space-y-2">
+                                    <span class="text-xs font-mono text-gray-400 uppercase">Sensitivity (Recall)</span>
+                                    <div id="sbSensGauge" class="text-3xl font-extrabold text-indigo-400 font-mono">70.0%</div>
+                                    <p class="text-[11px] text-gray-400 font-mono">TP / (TP + FN)</p>
+                                </div>
+
+                                <!-- Specificity Gauge -->
+                                <div class="glass-card p-5 rounded-2xl border border-amber-500/30 text-center space-y-2">
+                                    <span class="text-xs font-mono text-gray-400 uppercase">Specificity</span>
+                                    <div id="sbSpecGauge" class="text-3xl font-extrabold text-amber-400 font-mono">86.7%</div>
+                                    <p class="text-[11px] text-gray-400 font-mono">TN / (TN + FP)</p>
+                                </div>
+
+                                <!-- Precision Gauge -->
+                                <div class="glass-card p-5 rounded-2xl border border-blue-500/30 text-center space-y-2">
+                                    <span class="text-xs font-mono text-gray-400 uppercase">Precision</span>
+                                    <div id="sbPrecGauge" class="text-3xl font-extrabold text-blue-400 font-mono">63.6%</div>
+                                    <p class="text-[11px] text-gray-400 font-mono">TP / (TP + FP)</p>
+                                </div>
+                            </div>
+
+                            <!-- Key Takeaway Note -->
+                            <div class="glass-card p-4 rounded-2xl border border-gray-800 text-xs text-gray-300 leading-relaxed space-y-1">
+                                <span class="font-bold text-amber-400 block"><i class="fa-solid fa-lightbulb mr-1"></i> Data Science Insight:</span>
+                                <p id="sbInsight">When class distribution is imbalanced (e.g. TN >> TP), Accuracy alone can be misleading. Always evaluate Sensitivity and Precision together!</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 4. FINAL SCORECARD / RESULTS SCREEN -->
+            <section id="screenResults" class="hidden transition-all duration-500">
+                <div class="max-w-2xl mx-auto glass-card p-8 rounded-3xl border border-brand-500/30 text-center space-y-8 shadow-2xl relative overflow-hidden">
+                    
+                    <div class="space-y-3">
+                        <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-white text-4xl shadow-xl shadow-amber-500/20">
+                            <i class="fa-solid fa-crown"></i>
+                        </div>
+                        <h2 class="text-3xl font-extrabold text-white">Quiz Completed!</h2>
+                        <p class="text-sm text-gray-300">Here is how you performed across all 5 evaluation scenarios.</p>
+                    </div>
+
+                    <!-- Final Score Badge -->
+                    <div class="bg-gray-950/80 p-6 rounded-2xl border border-gray-800 space-y-2 font-mono">
+                        <span class="text-xs text-gray-400 uppercase tracking-widest">Final Score</span>
+                        <div id="finalScoreText" class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-emerald-400">
+                            1250 pts
+                        </div>
+                        <div id="accuracyBreakdownText" class="text-xs text-emerald-400 font-semibold pt-1">
+                            Accuracy Rate: 100% (20/20 correct)
+                        </div>
+                    </div>
+
+                    <!-- Scenario Performance Summary Pill Grid -->
+                    <div class="space-y-2 text-left">
+                        <h4 class="text-xs font-mono text-gray-400 uppercase tracking-wider">Scenario Mastery</h4>
+                        <div id="scenarioBreakdownList" class="space-y-2">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Replay Actions -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                        <button onclick="app.startQuiz('standard')" class="flex-1 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm transition shadow-lg shadow-brand-500/30">
+                            <i class="fa-solid fa-rotate-right mr-2"></i> Play Again
+                        </button>
+                        <button onclick="app.showScreen('sandbox')" class="flex-1 py-3 rounded-xl glass-card text-indigo-300 hover:bg-gray-800 font-bold text-sm transition">
+                            <i class="fa-solid fa-sliders mr-2"></i> Explore Sandbox
+                        </button>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="w-full glass-card border-t border-gray-800/80 py-4 text-center text-xs text-gray-400 relative z-10">
+            <p>Interactive Machine Learning Educational Platform • Confusion Matrix & Classification Metrics</p>
+        </footer>
+
+    </div>
+
+    <!-- MODAL: Formula Cheat Sheet -->
+    <div id="formulaModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="glass-card max-w-2xl w-full p-6 rounded-2xl border border-brand-500/40 space-y-6 max-h-[90vh] overflow-y-auto">
+            
+            <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-brand-400"></i> Evaluation Metrics Formula Reference
+                </h3>
+                <button onclick="app.closeModal('formulaModal')" class="text-gray-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Formulas List -->
+            <div class="space-y-4 font-mono text-xs sm:text-sm">
+                
+                <!-- 1. Accuracy -->
+                <div class="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-emerald-400 text-sm">1. Accuracy</span>
+                        <span class="text-gray-400 text-[11px]">Overall correctness</span>
+                    </div>
+                    <div class="bg-gray-950 p-2 rounded text-emerald-300 font-bold text-center">
+                        Accuracy = (TP + TN) / (TP + TN + FP + FN)
+                    </div>
+                    <p class="text-gray-300 text-[11px] font-sans">
+                        Measures the proportion of total predictions (both positive and negative) that were correct.
+                    </p>
+                </div>
+
+                <!-- 2. Sensitivity (Recall) -->
+                <div class="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-indigo-400 text-sm">2. Sensitivity (Recall / TPR)</span>
+                        <span class="text-gray-400 text-[11px]">True Positive Rate</span>
+                    </div>
+                    <div class="bg-gray-950 p-2 rounded text-indigo-300 font-bold text-center">
+                        Sensitivity = TP / (TP + FN)
+                    </div>
+                    <p class="text-gray-300 text-[11px] font-sans">
+                        Measures how well the model detects actual positive cases out of all real positives.
+                    </p>
+                </div>
+
+                <!-- 3. Specificity -->
+                <div class="p-4 rounded-xl bg-amber-950/40 border border-amber-500/30 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-amber-400 text-sm">3. Specificity (TNR)</span>
+                        <span class="text-gray-400 text-[11px]">True Negative Rate</span>
+                    </div>
+                    <div class="bg-gray-950 p-2 rounded text-amber-300 font-bold text-center">
+                        Specificity = TN / (TN + FP)
+                    </div>
+                    <p class="text-gray-300 text-[11px] font-sans">
+                        Measures how well the model identifies actual negative cases out of all real negatives.
+                    </p>
+                </div>
+
+                <!-- 4. Precision -->
+                <div class="p-4 rounded-xl bg-blue-950/40 border border-blue-500/30 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-blue-400 text-sm">4. Precision (PPV)</span>
+                        <span class="text-gray-400 text-[11px]">Positive Predictive Value</span>
+                    </div>
+                    <div class="bg-gray-950 p-2 rounded text-blue-300 font-bold text-center">
+                        Precision = TP / (TP + FP)
+                    </div>
+                    <p class="text-gray-300 text-[11px] font-sans">
+                        Measures how many of the model's positive predictions were actually correct.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="pt-2 text-right">
+                <button onclick="app.closeModal('formulaModal')" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold">
+                    Got it!
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT GAME ENGINE & LOGIC -->
+    <script>
+
+        // =========================================================================
+        // 1. LIVELY CANVAST BACKGROUND ENGINE (Glowing Interactive Particle Matrix)
+        // =========================================================================
+        const bgCanvas = document.getElementById('bgCanvas');
+        const ctx = bgCanvas.getContext('2d');
+
+        let width = bgCanvas.width = window.innerWidth;
+        let height = bgCanvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = bgCanvas.width = window.innerWidth;
+            height = bgCanvas.height = window.innerHeight;
+        });
+
+        // Mouse interaction position
+        const mouse = { x: width / 2, y: height / 2, radius: 150 };
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.8;
+                this.vy = (Math.random() - 0.5) * 0.8;
+                this.radius = Math.random() * 2 + 1;
+                // Colors corresponding to TP, FN, FP, TN matrix theme
+                const colors = ['#10b981', '#6366f1', '#f59e0b', '#3b82f6'];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.alpha = Math.random() * 0.5 + 0.2;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+
+                // Mouse interaction bounce
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < mouse.radius) {
+                    let angle = Math.atan2(dy, dx);
+                    this.x -= Math.cos(angle) * 1.5;
+                    this.y -= Math.sin(angle) * 1.5;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const particles = Array.from({ length: 65 }, () => new Particle());
+
+        function animateBg() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw connecting web lines between close particles
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    let dx = particles[i].x - particles[j].x;
+                    let dy = particles[i].y - particles[j].y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 120) {
+                        ctx.save();
+                        ctx.globalAlpha = (1 - dist / 120) * 0.15;
+                        ctx.strokeStyle = '#4f46e5';
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            }
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+
+        // =========================================================================
+        // 2. CONFETTI EFFECT SYSTEM
+        // =========================================================================
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const cCtx = confettiCanvas.getContext('2d');
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+
+        let confettiList = [];
+
+        function triggerConfetti() {
+            confettiList = [];
+            const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#3b82f6'];
+            for (let i = 0; i < 100; i++) {
+                confettiList.push({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    vx: (Math.random() - 0.5) * 14,
+                    vy: (Math.random() - 0.7) * 14,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 8 + 4,
+                    gravity: 0.25,
+                    alpha: 1
+                });
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            let active = false;
+
+            confettiList.forEach(c => {
+                if (c.alpha > 0) {
+                    active = true;
+                    c.x += c.vx;
+                    c.y += c.vy;
+                    c.vy += c.gravity;
+                    c.alpha -= 0.015;
+
+                    cCtx.save();
+                    cCtx.globalAlpha = Math.max(0, c.alpha);
+                    cCtx.fillStyle = c.color;
+                    cCtx.fillRect(c.x, c.y, c.size, c.size);
+                    cCtx.restore();
+                }
+            });
+
+            if (active) requestAnimationFrame(animateConfetti);
+        }
+
+        // =========================================================================
+        // 3. WEB AUDIO API SYNTHESIZER (Sound Effects)
+        // =========================================================================
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+            }
+
+            playCorrect() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+
+            playIncorrect() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now); // A3
+                osc.frequency.linearRampToValueAtTime(164.81, now + 0.2); // E3
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        // =========================================================================
+        // 4. QUIZ SCENARIOS DATA (5 REAL-WORLD DATASETS)
+        // =========================================================================
+        const SCENARIOS = [
+            {
+                id: 1,
+                title: "Telecom Customer Churn",
+                category: "Business Analytics",
+                icon: "fa-users",
+                badgeColor: "brand",
+                desc: "A telecom operator created a predictive model to identify customers likely to churn (cancel subscription) so retention offers can be sent. (Based on your dataset matrix!)",
+                colHeaders: ["Predicted Churn", "Predicted Stay"],
+                rowHeaders: ["Actual Churn", "Actual Stay"],
+                matrix: { tp: 35, fn: 15, fp: 20, tn: 130 },
+                questions: [
+                    {
+                        type: "accuracy",
+                        prompt: "What is the overall Accuracy of this churn prediction model?",
+                        options: ["82.5%", "70.0%", "63.6%", "86.7%"],
+                        correctIndex: 0,
+                        explanation: "Accuracy = (TP + TN) / Total = (35 + 130) / 200 = 165 / 200 = 0.825 = 82.5%."
+                    },
+                    {
+                        type: "sensitivity",
+                        prompt: "What is the Sensitivity (Recall) of detecting churners?",
+                        options: ["70.0%", "82.5%", "63.6%", "86.7%"],
+                        correctIndex: 0,
+                        explanation: "Sensitivity = TP / (TP + FN) = 35 / (35 + 15) = 35 / 50 = 0.70 = 70.0%."
+                    },
+                    {
+                        type: "specificity",
+                        prompt: "What is the Specificity of identifying loyal customers who stay?",
+                        options: ["86.7%", "70.0%", "82.5%", "63.6%"],
+                        correctIndex: 0,
+                        explanation: "Specificity = TN / (TN + FP) = 130 / (130 + 20) = 130 / 150 = 0.8667 = 86.7%."
+                    },
+                    {
+                        type: "precision",
+                        prompt: "What is the Precision (Positive Predictive Value) for churn predictions?",
+                        options: ["63.6%", "70.0%", "82.5%", "86.7%"],
+                        correctIndex: 0,
+                        explanation: "Precision = TP / (TP + FP) = 35 / (35 + 20) = 35 / 55 = 0.6364 = 63.6%."
+                    }
+                ]
+            },
+            {
+                id: 2,
+                title: "Medical Diagnostic Screening",
+                category: "Healthcare AI",
+                icon: "fa-notes-medical",
+                badgeColor: "emerald",
+                desc: "A hospital uses an AI model to screen 1,000 patients for a rare disease. Detecting every positive case is critical.",
+                colHeaders: ["Predicted Sick", "Predicted Healthy"],
+                rowHeaders: ["Actual Sick", "Actual Healthy"],
+                matrix: { tp: 90, fn: 10, fp: 50, tn: 850 },
+                questions: [
+                    {
+                        type: "accuracy",
+                        prompt: "What is the overall Accuracy of the diagnostic AI model?",
+                        options: ["94.0%", "90.0%", "64.3%", "94.4%"],
+                        correctIndex: 0,
+                        explanation: "Accuracy = (TP + TN) / Total = (90 + 850) / 1000 = 940 / 1000 = 94.0%."
+                    },
+                    {
+                        type: "sensitivity",
+                        prompt: "What is the Sensitivity (Recall) of catching sick patients?",
+                        options: ["90.0%", "94.0%", "64.3%", "85.0%"],
+                        correctIndex: 0,
+                        explanation: "Sensitivity = TP / (TP + FN) = 90 / (90 + 10) = 90 / 100 = 90.0%."
+                    },
+                    {
+                        type: "specificity",
+                        prompt: "What is the Specificity for healthy patients?",
+                        options: ["94.4%", "90.0%", "64.3%", "97.2%"],
+                        correctIndex: 0,
+                        explanation: "Specificity = TN / (TN + FP) = 850 / (850 + 50) = 850 / 900 = 0.9444 = 94.4%."
+                    },
+                    {
+                        type: "precision",
+                        prompt: "What is the Precision of positive diagnosis alerts?",
+                        options: ["64.3%", "90.0%", "94.0%", "85.0%"],
+                        correctIndex: 0,
+                        explanation: "Precision = TP / (TP + FP) = 90 / (90 + 50) = 90 / 140 = 0.6429 = 64.3%."
+                    }
+                ]
+            },
+            {
+                id: 3,
+                title: "MailGuard Spam Filter",
+                category: "Cybersecurity",
+                icon: "fa-envelope-shield",
+                badgeColor: "amber",
+                desc: "An email provider uses an automated spam filter to direct incoming emails into Spam vs Inbox folders.",
+                colHeaders: ["Predicted Spam", "Predicted Inbox"],
+                rowHeaders: ["Actual Spam", "Actual Inbox"],
+                matrix: { tp: 180, fn: 20, fp: 10, tn: 790 },
+                questions: [
+                    {
+                        type: "accuracy",
+                        prompt: "What is the overall Accuracy of the spam filter?",
+                        options: ["97.0%", "90.0%", "94.7%", "98.8%"],
+                        correctIndex: 0,
+                        explanation: "Accuracy = (180 + 790) / 1000 = 970 / 1000 = 97.0%."
+                    },
+                    {
+                        type: "precision",
+                        prompt: "What is the Precision of flagged spam emails?",
+                        options: ["94.7%", "90.0%", "97.0%", "98.8%"],
+                        correctIndex: 0,
+                        explanation: "Precision = TP / (TP + FP) = 180 / (180 + 10) = 180 / 190 = 0.9474 = 94.7%."
+                    },
+                    {
+                        type: "sensitivity",
+                        prompt: "What is the Sensitivity (Recall) for capturing spam?",
+                        options: ["90.0%", "94.7%", "97.0%", "98.8%"],
+                        correctIndex: 0,
+                        explanation: "Sensitivity = TP / (TP + FN) = 180 / (180 + 20) = 180 / 200 = 90.0%."
+                    },
+                    {
+                        type: "specificity",
+                        prompt: "What is the Specificity for legitimate inbox emails?",
+                        options: ["98.8%", "94.7%", "90.0%", "97.0%"],
+                        correctIndex: 0,
+                        explanation: "Specificity = TN / (TN + FP) = 790 / (790 + 10) = 790 / 800 = 0.9875 = 98.8%."
+                    }
+                ]
+            },
+            {
+                id: 4,
+                title: "Credit Card Fraud Detection",
+                category: "FinTech",
+                icon: "fa-credit-card",
+                badgeColor: "indigo",
+                desc: "A bank monitors 10,000 credit card transactions to flag fraudulent activity automatically.",
+                colHeaders: ["Predicted Fraud", "Predicted Normal"],
+                rowHeaders: ["Actual Fraud", "Actual Normal"],
+                matrix: { tp: 80, fn: 20, fp: 100, tn: 9800 },
+                questions: [
+                    {
+                        type: "accuracy",
+                        prompt: "What is the overall Accuracy of the fraud detector?",
+                        options: ["98.8%", "80.0%", "44.4%", "99.0%"],
+                        correctIndex: 0,
+                        explanation: "Accuracy = (80 + 9800) / 10000 = 9880 / 10000 = 98.8%."
+                    },
+                    {
+                        type: "precision",
+                        prompt: "What is the Precision when the bank flags a transaction as fraud?",
+                        options: ["44.4%", "80.0%", "98.8%", "99.0%"],
+                        correctIndex: 0,
+                        explanation: "Precision = TP / (TP + FP) = 80 / (80 + 100) = 80 / 180 = 0.4444 = 44.4%."
+                    },
+                    {
+                        type: "sensitivity",
+                        prompt: "What is the Sensitivity (Recall) of catching actual fraudulent transactions?",
+                        options: ["80.0%", "44.4%", "98.8%", "99.0%"],
+                        correctIndex: 0,
+                        explanation: "Sensitivity = TP / (TP + FN) = 80 / (80 + 20) = 80 / 100 = 80.0%."
+                    },
+                    {
+                        type: "specificity",
+                        prompt: "What is the Specificity for legitimate normal transactions?",
+                        options: ["99.0%", "80.0%", "44.4%", "98.8%"],
+                        correctIndex: 0,
+                        explanation: "Specificity = TN / (TN + FP) = 9800 / (9800 + 100) = 9800 / 9900 = 0.9899 = 99.0%."
+                    }
+                ]
+            },
+            {
+                id: 5,
+                title: "Autonomous Vehicle Obstacle Detector",
+                category: "Robotics & AI",
+                icon: "fa-car-side",
+                badgeColor: "blue",
+                desc: "A self-driving car computer vision system scans 1,000 camera frames to detect pedestrians in front of the vehicle.",
+                colHeaders: ["Predicted Person", "Predicted Clear"],
+                rowHeaders: ["Actual Person", "Actual Clear"],
+                matrix: { tp: 95, fn: 5, fp: 40, tn: 860 },
+                questions: [
+                    {
+                        type: "sensitivity",
+                        prompt: "What is the Sensitivity (Recall) of detecting pedestrians?",
+                        options: ["95.0%", "70.4%", "95.6%", "90.0%"],
+                        correctIndex: 0,
+                        explanation: "Sensitivity = TP / (TP + FN) = 95 / (95 + 5) = 95 / 100 = 95.0%. (Crucial for safety!)"
+                    },
+                    {
+                        type: "accuracy",
+                        prompt: "What is the overall Accuracy of the vision detector?",
+                        options: ["95.5%", "95.0%", "70.4%", "95.6%"],
+                        correctIndex: 0,
+                        explanation: "Accuracy = (95 + 860) / 1000 = 955 / 1000 = 95.5%."
+                    },
+                    {
+                        type: "precision",
+                        prompt: "What is the Precision of pedestrian warnings?",
+                        options: ["70.4%", "95.0%", "95.5%", "95.6%"],
+                        correctIndex: 0,
+                        explanation: "Precision = TP / (TP + FP) = 95 / (95 + 40) = 95 / 135 = 0.7037 = 70.4%."
+                    },
+                    {
+                        type: "specificity",
+                        prompt: "What is the Specificity when the road is clear of pedestrians?",
+                        options: ["95.6%", "70.4%", "95.0%", "95.5%"],
+                        correctIndex: 0,
+                        explanation: "Specificity = TN / (TN + FP) = 860 / (860 + 40) = 860 / 900 = 0.9556 = 95.6%."
+                    }
+                ]
+            }
+        ];
+
+        // =========================================================================
+        // 5. APPLICATION STATE & CONTROLLER
+        // =========================================================================
+        class QuizApp {
+            constructor() {
+                this.currentScenarioIndex = 0;
+                this.currentQuestionIndex = 0;
+                this.score = 0;
+                this.streak = 0;
+                this.mode = 'standard'; // 'standard' or 'timed'
+                this.timer = null;
+                this.timeLeft = 45;
+                this.scenariosRecord = []; // Tracks performance per scenario
+            }
+
+            // View Navigator
+            showScreen(screenId) {
+                ['screenWelcome', 'screenQuiz', 'screenSandbox', 'screenResults'].forEach(s => {
+                    document.getElementById(s).classList.add('hidden');
+                });
+
+                if (screenId === 'welcome') document.getElementById('screenWelcome').classList.remove('hidden');
+                if (screenId === 'quiz') document.getElementById('screenQuiz').classList.remove('hidden');
+                if (screenId === 'sandbox') {
+                    document.getElementById('screenSandbox').classList.remove('hidden');
+                    this.updateSandbox();
+                }
+                if (screenId === 'results') {
+                    document.getElementById('screenResults').classList.remove('hidden');
+                    this.renderResults();
+                }
+            }
+
+            toggleSound() {
+                sound.enabled = !sound.enabled;
+                const icon = document.getElementById('soundIcon');
+                if (sound.enabled) {
+                    icon.className = 'fa-solid fa-volume-high text-brand-400';
+                } else {
+                    icon.className = 'fa-solid fa-volume-xmark text-gray-500';
+                }
+            }
+
+            openModal(id) {
+                document.getElementById(id).classList.remove('hidden');
+            }
+
+            closeModal(id) {
+                document.getElementById(id).classList.add('hidden');
+            }
+
+            startQuiz(mode = 'standard') {
+                sound.playClick();
+                this.mode = mode;
+                this.currentScenarioIndex = 0;
+                this.currentQuestionIndex = 0;
+                this.score = 0;
+                this.streak = 0;
+                this.scenariosRecord = SCENARIOS.map(s => ({ title: s.title, correct: 0, total: s.questions.length }));
+
+                this.updateHeaderStats();
+                this.loadScenario();
+                this.showScreen('quiz');
+            }
+
+            updateHeaderStats() {
+                document.getElementById('scoreText').innerText = this.score;
+                document.getElementById('streakCount').innerText = `${this.streak}x`;
+
+                // Render dots
+                const dotsContainer = document.getElementById('scenarioDots');
+                dotsContainer.innerHTML = '';
+                SCENARIOS.forEach((_, idx) => {
+                    const dot = document.createElement('div');
+                    dot.className = `w-2.5 h-2.5 rounded-full ${idx === this.currentScenarioIndex ? 'bg-brand-400 scale-125 ring-2 ring-brand-500/50' : idx < this.currentScenarioIndex ? 'bg-emerald-500' : 'bg-gray-700'}`;
+                    dotsContainer.appendChild(dot);
+                });
+
+                document.getElementById('scenarioNumberText').innerText = `${this.currentScenarioIndex + 1}/${SCENARIOS.length}`;
+
+                // Handle timer visiblity
+                const timerCont = document.getElementById('timerContainer');
+                if (this.mode === 'timed') {
+                    timerCont.classList.remove('hidden');
+                    this.resetTimer();
+                } else {
+                    timerCont.classList.add('hidden');
+                    clearInterval(this.timer);
+                }
+            }
+
+            resetTimer() {
+                clearInterval(this.timer);
+                this.timeLeft = 35;
+                document.getElementById('timeLeft').innerText = `${this.timeLeft}s`;
+
+                this.timer = setInterval(() => {
+                    this.timeLeft--;
+                    document.getElementById('timeLeft').innerText = `${this.timeLeft}s`;
+
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.timer);
+                        this.handleTimeOut();
+                    }
+                }, 1000);
+            }
+
+            handleTimeOut() {
+                sound.playIncorrect();
+                this.streak = 0;
+                this.showFeedback(false, "Time's up! Answer faster next turn.");
+            }
+
+            loadScenario() {
+                const scenario = SCENARIOS[this.currentScenarioIndex];
+
+                // Update scenario information text & visual tags
+                document.getElementById('scenarioTitle').innerText = scenario.title;
+                document.getElementById('scenarioCategory').innerText = scenario.category;
+                document.getElementById('scenarioDesc').innerText = scenario.desc;
+                document.getElementById('scenarioIcon').className = `fa-solid ${scenario.icon}`;
+
+                // Headers
+                document.getElementById('matrixCol1Header').innerText = scenario.colHeaders[0];
+                document.getElementById('matrixCol2Header').innerText = scenario.colHeaders[1];
+                document.getElementById('matrixRow1Header').innerText = scenario.rowHeaders[0];
+                document.getElementById('matrixRow2Header').innerText = scenario.rowHeaders[1];
+
+                // Matrix Values
+                const m = scenario.matrix;
+                document.getElementById('cellTP').innerText = m.tp;
+                document.getElementById('cellFN').innerText = m.fn;
+                document.getElementById('cellFP').innerText = m.fp;
+                document.getElementById('cellTN').innerText = m.tn;
+
+                const total = m.tp + m.fn + m.fp + m.tn;
+                const actualPos = m.tp + m.fn;
+                document.getElementById('cellTotal').innerText = total;
+                document.getElementById('cellActualPos').innerText = actualPos;
+
+                this.loadQuestion();
+            }
+
+            loadQuestion() {
+                const scenario = SCENARIOS[this.currentScenarioIndex];
+                const q = scenario.questions[this.currentQuestionIndex];
+
+                document.getElementById('questionCategoryTag').innerText = `Scenario ${scenario.id} • Question ${this.currentQuestionIndex + 1} of ${scenario.questions.length}`;
+                document.getElementById('questionPrompt').innerText = q.prompt;
+
+                // Render options
+                const grid = document.getElementById('optionsGrid');
+                grid.innerHTML = '';
+
+                // Shuffle the visual display while keeping the correct answer attached to its text.
+                // This prevents the correct option from always appearing in the top-left position.
+                const originalOptions = q.options.map((opt, i) => ({ text: opt, isCorrect: i === q.correctIndex }));
+                const shuffledOptions = this.shuffleOptions(originalOptions);
+
+                shuffledOptions.forEach((item) => {
+                    const btn = document.createElement('button');
+                    btn.className = "p-4 rounded-xl glass-card hover:bg-brand-900/40 hover:border-brand-500/50 text-left font-mono font-bold text-lg text-white transition flex items-center justify-between group border border-gray-800";
+                    btn.innerHTML = `
+                        <span>${item.text}</span>
+                        <i class="fa-regular fa-circle text-gray-600 group-hover:text-brand-400 transition"></i>
+                    `;
+                    btn.onclick = () => this.selectAnswer(item.isCorrect, btn, q.explanation);
+                    grid.appendChild(btn);
+                });
+
+                // Reset feedback state
+                document.getElementById('feedbackBox').classList.add('hidden');
+                document.getElementById('nextQuestionBtn').classList.add('hidden');
+                document.getElementById('hintBtn').classList.remove('hidden');
+
+                if (this.mode === 'timed') this.resetTimer();
+            }
+
+            shuffleOptions(options) {
+                const shuffled = [...options];
+
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+
+                return shuffled;
+            }
+
+            selectAnswer(isCorrect, buttonElem, explanation) {
+                clearInterval(this.timer);
+                const allButtons = document.querySelectorAll('#optionsGrid button');
+                allButtons.forEach(b => b.disabled = true);
+
+                if (isCorrect) {
+                    sound.playCorrect();
+                    buttonElem.classList.remove('glass-card', 'border-gray-800');
+                    buttonElem.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-300');
+                    buttonElem.querySelector('i').className = 'fa-solid fa-circle-check text-emerald-400';
+
+                    this.streak++;
+                    const pointsGained = 100 + (this.streak * 20);
+                    this.score += pointsGained;
+
+                    this.scenariosRecord[this.currentScenarioIndex].correct++;
+                    this.showFeedback(true, explanation, pointsGained);
+                } else {
+                    sound.playIncorrect();
+                    buttonElem.classList.remove('glass-card', 'border-gray-800');
+                    buttonElem.classList.add('bg-red-950/80', 'border-red-500', 'text-red-300');
+                    buttonElem.querySelector('i').className = 'fa-solid fa-circle-xmark text-red-400';
+
+                    this.streak = 0;
+                    this.showFeedback(false, explanation);
+                }
+
+                this.updateHeaderStats();
+                document.getElementById('nextQuestionBtn').classList.remove('hidden');
+                document.getElementById('hintBtn').classList.add('hidden');
+            }
+
+            showFeedback(isCorrect, explanation, points = 0) {
+                const box = document.getElementById('feedbackBox');
+                const title = document.getElementById('feedbackTitle');
+                const text = document.getElementById('feedbackText');
+
+                box.classList.remove('hidden', 'bg-emerald-950/50', 'border-emerald-500/40', 'bg-red-950/50', 'border-red-500/40');
+
+                if (isCorrect) {
+                    box.classList.add('bg-emerald-950/50', 'border-emerald-500/40');
+                    title.className = 'flex items-center space-x-2 font-bold text-base text-emerald-400';
+                    title.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>Spot On! (+${points} pts)</span>`;
+                } else {
+                    box.classList.add('bg-red-950/50', 'border-red-500/40');
+                    title.className = 'flex items-center space-x-2 font-bold text-base text-red-400';
+                    title.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span>Incorrect</span>`;
+                }
+
+                text.innerText = explanation;
+            }
+
+            showHint() {
+                sound.playClick();
+                const scenario = SCENARIOS[this.currentScenarioIndex];
+                const q = scenario.questions[this.currentQuestionIndex];
+
+                let hintMsg = "Check the matrix values carefully!";
+                if (q.type === 'accuracy') hintMsg = "Accuracy formula: (TP + TN) / Total Sample Count";
+                if (q.type === 'sensitivity') hintMsg = "Sensitivity formula: TP / (TP + FN) [Focus on Actual Positives]";
+                if (q.type === 'specificity') hintMsg = "Specificity formula: TN / (TN + FP) [Focus on Actual Negatives]";
+                if (q.type === 'precision') hintMsg = "Precision formula: TP / (TP + FP) [Focus on Predicted Positives]";
+
+                alert(`💡 HINT: ${hintMsg}`);
+            }
+
+            nextQuestion() {
+                sound.playClick();
+                const scenario = SCENARIOS[this.currentScenarioIndex];
+
+                if (this.currentQuestionIndex < scenario.questions.length - 1) {
+                    this.currentQuestionIndex++;
+                    this.loadQuestion();
+                } else {
+                    // Move to next scenario or complete quiz
+                    if (this.currentScenarioIndex < SCENARIOS.length - 1) {
+                        this.currentScenarioIndex++;
+                        this.currentQuestionIndex = 0;
+                        this.updateHeaderStats();
+                        this.loadScenario();
+                    } else {
+                        // Quiz Finished!
+                        triggerConfetti();
+                        this.showScreen('results');
+                    }
+                }
+            }
+
+            // Quick Calculator tool
+            toggleCalculator() {
+                const calc = document.getElementById('scratchpadCalc');
+                calc.classList.toggle('hidden');
+            }
+
+            runCalc() {
+                const num = parseFloat(document.getElementById('calcNum').value);
+                const den = parseFloat(document.getElementById('calcDen').value);
+                const resultBox = document.getElementById('calcResult');
+
+                if (!num || !den || den === 0) {
+                    resultBox.innerText = "Invalid inputs";
+                    return;
+                }
+
+                const val = (num / den) * 100;
+                resultBox.innerText = `${num} / ${den} = ${(num/den).toFixed(4)} (${val.toFixed(1)}%)`;
+            }
+
+            // Sandbox Mode Realtime Simulator
+            updateSandbox() {
+                const tp = parseInt(document.getElementById('sbSliderTP').value);
+                const fn = parseInt(document.getElementById('sbSliderFN').value);
+                const fp = parseInt(document.getElementById('sbSliderFP').value);
+                const tn = parseInt(document.getElementById('sbSliderTN').value);
+
+                document.getElementById('sbValTP').innerText = tp;
+                document.getElementById('sbValFN').innerText = fn;
+                document.getElementById('sbValFP').innerText = fp;
+                document.getElementById('sbValTN').innerText = tn;
+
+                const total = tp + fn + fp + tn;
+                document.getElementById('sbTotal').innerText = total;
+
+                if (total === 0) return;
+
+                const acc = ((tp + tn) / total) * 100;
+                const sens = (tp + fn) > 0 ? (tp / (tp + fn)) * 100 : 0;
+                const spec = (tn + fp) > 0 ? (tn / (tn + fp)) * 100 : 0;
+                const prec = (tp + fp) > 0 ? (tp / (tp + fp)) * 100 : 0;
+
+                document.getElementById('sbAccGauge').innerText = `${acc.toFixed(1)}%`;
+                document.getElementById('sbSensGauge').innerText = `${sens.toFixed(1)}%`;
+                document.getElementById('sbSpecGauge').innerText = `${spec.toFixed(1)}%`;
+                document.getElementById('sbPrecGauge').innerText = `${prec.toFixed(1)}%`;
+            }
+
+            // Render Final Scorecard
+            renderResults() {
+                document.getElementById('finalScoreText').innerText = `${this.score} pts`;
+
+                let totalCorrect = 0;
+                let totalQ = 0;
+
+                const list = document.getElementById('scenarioBreakdownList');
+                list.innerHTML = '';
+
+                this.scenariosRecord.forEach((rec, idx) => {
+                    totalCorrect += rec.correct;
+                    totalQ += rec.total;
+
+                    const row = document.createElement('div');
+                    row.className = 'p-3 rounded-xl bg-gray-950 border border-gray-800 flex justify-between items-center text-xs font-mono';
+                    row.innerHTML = `
+                        <span class="text-gray-300">${idx + 1}. ${rec.title}</span>
+                        <span class="${rec.correct === rec.total ? 'text-emerald-400 font-bold' : 'text-amber-400'}">
+                            ${rec.correct}/${rec.total} Correct
+                        </span>
+                    `;
+                    list.appendChild(row);
+                });
+
+                const rate = ((totalCorrect / totalQ) * 100).toFixed(0);
+                document.getElementById('accuracyBreakdownText').innerText = `Overall Accuracy Rate: ${rate}% (${totalCorrect}/${totalQ} questions correct)`;
+            }
+        }
+
+        // Initialize App Instance
+        const app = new QuizApp();
+    </script>
+</body>
+</html>
