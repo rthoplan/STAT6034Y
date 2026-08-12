@@ -187,7 +187,7 @@
                             Master the Confusion Matrix</span>
                         </h1>
                         <p class="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto font-light">
-                            Test your ability to evaluate classifier performance across 5 real-world scenarios. Calculate <span class="text-emerald-400 font-semibold">Accuracy</span>, <span class="text-indigo-400 font-semibold">Sensitivity</span>, <span class="text-amber-400 font-semibold">Specificity</span>, and <span class="text-blue-400 font-semibold">Precision</span>.
+                            Test your ability to evaluate classifier performance across 15 real-world scenarios. Calculate <span class="text-emerald-400 font-semibold">Accuracy</span>, <span class="text-indigo-400 font-semibold">Sensitivity</span>, <span class="text-amber-400 font-semibold">Specificity</span>, and <span class="text-blue-400 font-semibold">Precision</span>.
                         </p>
                     </div>
 
@@ -225,7 +225,7 @@
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-white text-lg group-hover:text-brand-300 transition">Standard Quiz</h3>
-                                    <p class="text-xs text-gray-400 mt-1">5 Scenarios • Step-by-step feedback • Hints & formulas included</p>
+                                    <p class="text-xs text-gray-400 mt-1">15 Scenarios • 60 metric questions • Step-by-step feedback</p>
                                 </div>
                             </div>
                         </button>
@@ -246,7 +246,7 @@
                     </div>
 
                     <div class="pt-4 flex items-center justify-center gap-6 text-sm text-gray-400">
-                        <span><i class="fa-solid fa-bullseye text-brand-400 mr-2"></i>5 Unique Real-world Scenarios</span>
+                        <span><i class="fa-solid fa-bullseye text-brand-400 mr-2"></i>15 Unique Real-world Scenarios</span>
                         <span><i class="fa-solid fa-calculator text-emerald-400 mr-2"></i>Built-in Helper Tools</span>
                     </div>
 
@@ -263,16 +263,16 @@
                         <!-- Scenario Tracker -->
                         <div class="flex items-center space-x-3">
                             <span class="text-xs font-mono text-gray-400 uppercase tracking-widest">Scenario</span>
-                            <div class="flex space-x-1.5" id="scenarioDots">
+                            <div class="flex flex-wrap gap-1.5 max-w-[170px]" id="scenarioDots">
                                 <!-- Dots generated dynamically -->
                             </div>
-                            <span id="scenarioNumberText" class="text-sm font-semibold text-white ml-2">1/5</span>
+                            <span id="scenarioNumberText" class="text-sm font-semibold text-white ml-2">1/15</span>
                         </div>
 
                         <!-- Timer (Shown if timed mode) -->
                         <div id="timerContainer" class="hidden flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl font-mono text-amber-300 text-sm font-semibold">
                             <i class="fa-solid fa-clock animate-pulse"></i>
-                            <span id="timeLeft">45s</span>
+                            <span id="timeLeft">35s</span>
                         </div>
 
                         <!-- Streak & Score -->
@@ -599,7 +599,7 @@
                             <i class="fa-solid fa-crown"></i>
                         </div>
                         <h2 class="text-3xl font-extrabold text-white">Quiz Completed!</h2>
-                        <p class="text-sm text-gray-300">Here is how you performed across all 5 evaluation scenarios.</p>
+                        <p class="text-sm text-gray-300">Here is how you performed across all 15 evaluation scenarios.</p>
                     </div>
 
                     <!-- Final Score Badge -->
@@ -609,7 +609,7 @@
                             1250 pts
                         </div>
                         <div id="accuracyBreakdownText" class="text-xs text-emerald-400 font-semibold pt-1">
-                            Accuracy Rate: 100% (20/20 correct)
+                            Accuracy Rate: 100% (60/60 correct)
                         </div>
                     </div>
 
@@ -966,7 +966,7 @@
         const sound = new SoundEngine();
 
         // =========================================================================
-        // 4. QUIZ SCENARIOS DATA (5 REAL-WORLD DATASETS)
+        // 4. QUIZ SCENARIOS DATA (15 REAL-WORLD DATASETS)
         // =========================================================================
         const SCENARIOS = [
             {
@@ -1176,6 +1176,225 @@
             }
         ];
 
+        // Ten additional contexts. Questions and worked explanations are
+        // generated from each matrix to keep every displayed answer consistent.
+        const ADDITIONAL_SCENARIOS = [
+            {
+                id: 6,
+                title: "Student Academic-Risk Alert",
+                category: "Education Analytics",
+                icon: "fa-graduation-cap",
+                badgeColor: "violet",
+                desc: "A university model identifies students at risk of failing a first-year module so that academic support can be offered early.",
+                colHeaders: ["Predicted At Risk", "Predicted On Track"],
+                rowHeaders: ["Actually At Risk", "Actually On Track"],
+                matrix: { tp: 72, fn: 18, fp: 30, tn: 180 },
+                positivePlural: "students who are actually at risk",
+                negativePlural: "students who are actually on track",
+                alertDescription: "a student is classified as at risk"
+            },
+            {
+                id: 7,
+                title: "Factory Defect Inspection",
+                category: "Industrial Quality",
+                icon: "fa-industry",
+                badgeColor: "orange",
+                desc: "A computer-vision system inspects 1,000 manufactured components and classifies each component as defective or acceptable.",
+                colHeaders: ["Predicted Defective", "Predicted Acceptable"],
+                rowHeaders: ["Actually Defective", "Actually Acceptable"],
+                matrix: { tp: 144, fn: 16, fp: 36, tn: 804 },
+                positivePlural: "actually defective components",
+                negativePlural: "actually acceptable components",
+                alertDescription: "a component is flagged as defective"
+            },
+            {
+                id: 8,
+                title: "Crop Disease Recognition",
+                category: "Agricultural AI",
+                icon: "fa-seedling",
+                badgeColor: "green",
+                desc: "A mobile image classifier checks 700 crop-leaf photographs for signs of fungal disease before farmers apply treatment.",
+                colHeaders: ["Predicted Diseased", "Predicted Healthy"],
+                rowHeaders: ["Actually Diseased", "Actually Healthy"],
+                matrix: { tp: 126, fn: 14, fp: 54, tn: 506 },
+                positivePlural: "actually diseased leaves",
+                negativePlural: "actually healthy leaves",
+                alertDescription: "the model issues a crop-disease warning"
+            },
+            {
+                id: 9,
+                title: "Flood Early-Warning System",
+                category: "Climate Risk",
+                icon: "fa-cloud-showers-water",
+                badgeColor: "cyan",
+                desc: "A weather service evaluates 800 observation periods and issues a flood alert whenever its model predicts dangerous conditions.",
+                colHeaders: ["Predicted Flood", "Predicted Safe"],
+                rowHeaders: ["Actual Flood", "Actually Safe"],
+                matrix: { tp: 64, fn: 16, fp: 36, tn: 684 },
+                positivePlural: "actual flood conditions",
+                negativePlural: "actually safe conditions",
+                alertDescription: "the system issues a flood alert"
+            },
+            {
+                id: 10,
+                title: "Network Intrusion Detection",
+                category: "Cyber Defence",
+                icon: "fa-shield-halved",
+                badgeColor: "red",
+                desc: "A security platform analyses 5,000 network sessions and flags sessions that appear to be malicious intrusions.",
+                colHeaders: ["Predicted Intrusion", "Predicted Normal"],
+                rowHeaders: ["Actual Intrusion", "Actually Normal"],
+                matrix: { tp: 210, fn: 40, fp: 90, tn: 4660 },
+                positivePlural: "actual network intrusions",
+                negativePlural: "actually normal network sessions",
+                alertDescription: "a session is flagged as an intrusion"
+            },
+            {
+                id: 11,
+                title: "Loan Default Risk Model",
+                category: "Banking Analytics",
+                icon: "fa-building-columns",
+                badgeColor: "yellow",
+                desc: "A lender scores 2,000 applications to identify borrowers likely to default and sends high-risk applications for manual review.",
+                colHeaders: ["Predicted Default", "Predicted Repayment"],
+                rowHeaders: ["Actual Default", "Actual Repayment"],
+                matrix: { tp: 160, fn: 40, fp: 240, tn: 1560 },
+                positivePlural: "borrowers who actually default",
+                negativePlural: "borrowers who actually repay",
+                alertDescription: "an applicant is classified as likely to default"
+            },
+            {
+                id: 12,
+                title: "Predictive Equipment Maintenance",
+                category: "Smart Operations",
+                icon: "fa-gears",
+                badgeColor: "slate",
+                desc: "A sensor-based model monitors 1,200 machine cycles and predicts whether equipment will fail before the next inspection.",
+                colHeaders: ["Predicted Failure", "Predicted Normal"],
+                rowHeaders: ["Actual Failure", "Actually Normal"],
+                matrix: { tp: 108, fn: 12, fp: 72, tn: 1008 },
+                positivePlural: "actual impending equipment failures",
+                negativePlural: "actually normal machine cycles",
+                alertDescription: "the model predicts an equipment failure"
+            },
+            {
+                id: 13,
+                title: "Insurance Claim Fraud Screening",
+                category: "Insurance Analytics",
+                icon: "fa-file-shield",
+                badgeColor: "pink",
+                desc: "An insurer screens 3,000 submitted claims and sends claims predicted to be fraudulent for specialist investigation.",
+                colHeaders: ["Predicted Fraud", "Predicted Genuine"],
+                rowHeaders: ["Actual Fraud", "Actually Genuine"],
+                matrix: { tp: 135, fn: 15, fp: 165, tn: 2685 },
+                positivePlural: "actually fraudulent claims",
+                negativePlural: "actually genuine insurance claims",
+                alertDescription: "a claim is flagged as fraudulent"
+            },
+            {
+                id: 14,
+                title: "Drinking-Water Contamination Alert",
+                category: "Environmental Health",
+                icon: "fa-droplet",
+                badgeColor: "teal",
+                desc: "A monitoring system classifies 500 water samples as contaminated or safe before results are reported to local communities.",
+                colHeaders: ["Predicted Contaminated", "Predicted Safe"],
+                rowHeaders: ["Actually Contaminated", "Actually Safe"],
+                matrix: { tp: 76, fn: 4, fp: 38, tn: 382 },
+                positivePlural: "actually contaminated water samples",
+                negativePlural: "actually safe water samples",
+                alertDescription: "the system issues a contamination alert"
+            },
+            {
+                id: 15,
+                title: "Emergency Relief Needs Assessment",
+                category: "Humanitarian Analytics",
+                icon: "fa-hand-holding-heart",
+                badgeColor: "rose",
+                desc: "After a cyclone, a model classifies 1,000 households according to whether they urgently need relief supplies.",
+                colHeaders: ["Predicted Urgent Need", "Predicted Non-Urgent"],
+                rowHeaders: ["Actually Urgent", "Actually Non-Urgent"],
+                matrix: { tp: 240, fn: 60, fp: 80, tn: 620 },
+                positivePlural: "households with an actually urgent need",
+                negativePlural: "households whose needs are actually non-urgent",
+                alertDescription: "a household is classified as urgently needing relief"
+            }
+        ];
+
+        function percentage(value) {
+            return `${(value * 100).toFixed(1)}%`;
+        }
+
+        function calculateMetrics(matrix) {
+            const total = matrix.tp + matrix.fn + matrix.fp + matrix.tn;
+            return {
+                accuracy: (matrix.tp + matrix.tn) / total,
+                sensitivity: matrix.tp / (matrix.tp + matrix.fn),
+                specificity: matrix.tn / (matrix.tn + matrix.fp),
+                precision: matrix.tp / (matrix.tp + matrix.fp)
+            };
+        }
+
+        function workedExplanation(type, matrix) {
+            const total = matrix.tp + matrix.fn + matrix.fp + matrix.tn;
+            const parts = {
+                accuracy: {
+                    name: "Accuracy",
+                    formula: "(TP + TN) / Total",
+                    numerator: matrix.tp + matrix.tn,
+                    denominator: total,
+                    value: (matrix.tp + matrix.tn) / total
+                },
+                sensitivity: {
+                    name: "Sensitivity",
+                    formula: "TP / (TP + FN)",
+                    numerator: matrix.tp,
+                    denominator: matrix.tp + matrix.fn,
+                    value: matrix.tp / (matrix.tp + matrix.fn)
+                },
+                specificity: {
+                    name: "Specificity",
+                    formula: "TN / (TN + FP)",
+                    numerator: matrix.tn,
+                    denominator: matrix.tn + matrix.fp,
+                    value: matrix.tn / (matrix.tn + matrix.fp)
+                },
+                precision: {
+                    name: "Precision",
+                    formula: "TP / (TP + FP)",
+                    numerator: matrix.tp,
+                    denominator: matrix.tp + matrix.fp,
+                    value: matrix.tp / (matrix.tp + matrix.fp)
+                }
+            }[type];
+
+            return `${parts.name} = ${parts.formula} = ${parts.numerator} / ${parts.denominator} = ${percentage(parts.value)}.`;
+        }
+
+        function createScenarioQuestions(scenario) {
+            const metrics = calculateMetrics(scenario.matrix);
+            const prompts = {
+                accuracy: `What is the overall Accuracy of the ${scenario.title.toLowerCase()}?`,
+                sensitivity: `What is the Sensitivity (Recall) for identifying ${scenario.positivePlural}?`,
+                specificity: `What is the Specificity for ${scenario.negativePlural}?`,
+                precision: `What is the Precision when ${scenario.alertDescription}?`
+            };
+            const types = ["accuracy", "sensitivity", "specificity", "precision"];
+
+            return types.map(type => ({
+                type,
+                prompt: prompts[type],
+                options: [type, ...types.filter(other => other !== type)].map(metric => percentage(metrics[metric])),
+                correctIndex: 0,
+                explanation: workedExplanation(type, scenario.matrix)
+            }));
+        }
+
+        ADDITIONAL_SCENARIOS.forEach(scenario => {
+            scenario.questions = createScenarioQuestions(scenario);
+            SCENARIOS.push(scenario);
+        });
+
         // =========================================================================
         // 5. APPLICATION STATE & CONTROLLER
         // =========================================================================
@@ -1187,7 +1406,7 @@
                 this.streak = 0;
                 this.mode = 'standard'; // 'standard' or 'timed'
                 this.timer = null;
-                this.timeLeft = 45;
+                this.timeLeft = 35;
                 this.scenariosRecord = []; // Tracks performance per scenario
             }
 
